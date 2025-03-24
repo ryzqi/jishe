@@ -1,3 +1,4 @@
+from sqlalchemy import text  # 新增导入
 from typing import AsyncGenerator, Dict, Any
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -43,7 +44,6 @@ engine_kwargs: Dict[str, Any] = {
     "pool_timeout": 30,  # 获取连接超时时间
     "pool_recycle": 1800,  # 连接回收时间(30分钟)
     "pool_pre_ping": True,  # 连接前预检
-    "poolclass": QueuePool,  # 使用队列池
 }
 
 # 创建异步数据库引擎
@@ -113,7 +113,7 @@ async def init_db() -> None:
     try:
         # 测试数据库连接
         async with engine.connect() as conn:
-            await conn.execute("SELECT 1")
+            await conn.execute(text("SELECT 1"))
         logger.info("数据库连接成功")
     except Exception as e:
         logger.error(f"数据库连接失败: {str(e)}")
