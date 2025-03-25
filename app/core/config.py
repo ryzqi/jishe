@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # CORS配置
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
+    # Gemini API配置
+    GEMINI_API_KEY: str
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
