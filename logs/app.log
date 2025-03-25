@@ -1,0 +1,72 @@
+2025-03-24 21:33:44 | INFO | 正在启动 logistics-management
+2025-03-24 21:33:44 | ERROR | 数据库连接失败: connection was closed in the middle of operation
+2025-03-24 21:35:41 | INFO | 正在启动 logistics-management
+2025-03-24 21:35:41 | ERROR | 数据库连接失败: connection was closed in the middle of operation
+2025-03-24 21:36:34 | INFO | 正在启动 logistics-management
+2025-03-24 21:36:35 | ERROR | 数据库连接失败: connection was closed in the middle of operation
+2025-03-24 22:07:09 | INFO | 正在启动 logistics-management
+2025-03-24 22:10:30 | INFO | 正在关闭 logistics-management
+2025-03-24 22:10:32 | INFO | 正在启动 logistics-management
+2025-03-24 22:10:44 | INFO | 正在关闭 logistics-management
+2025-03-24 22:10:46 | INFO | 正在启动 logistics-management
+2025-03-24 22:11:12 | INFO | 正在关闭 logistics-management
+2025-03-24 22:44:36 | INFO | 正在启动 logistics-management
+2025-03-24 22:53:09 | INFO | 正在关闭 logistics-management
+2025-03-24 22:53:11 | INFO | 正在启动 logistics-management
+2025-03-24 22:55:48 | INFO | 正在关闭 logistics-management
+2025-03-24 22:55:50 | INFO | 正在启动 logistics-management
+2025-03-24 22:55:57 | INFO | 正在关闭 logistics-management
+2025-03-24 22:56:00 | INFO | 正在启动 logistics-management
+2025-03-24 23:06:49 | INFO | 应用程序启动中...
+2025-03-24 23:06:49 | INFO | 已安排创建超级管理员账户
+2025-03-25 11:14:29 | INFO | 正在启动 logistics-management
+2025-03-25 11:15:30 | INFO | 正在启动 logistics-management
+2025-03-25 11:15:38 | INFO | 正在启动 logistics-management
+2025-03-25 11:20:23 | INFO | 正在关闭 logistics-management
+2025-03-25 11:20:24 | INFO | 正在启动 logistics-management
+2025-03-25 11:20:45 | INFO | 正在关闭 logistics-management
+2025-03-25 11:20:47 | INFO | 正在启动 logistics-management
+2025-03-25 11:21:23 | INFO | 正在关闭 logistics-management
+2025-03-25 11:21:24 | INFO | 正在启动 logistics-management
+2025-03-25 11:21:47 | INFO | 正在关闭 logistics-management
+2025-03-25 11:21:49 | INFO | 正在启动 logistics-management
+2025-03-25 11:22:11 | ERROR | OAuth2登录过程中发生错误: connection was closed in the middle of operation
+2025-03-25 11:22:11 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 11:22:50 | INFO | 正在关闭 logistics-management
+2025-03-25 11:23:27 | ERROR | OAuth2登录过程中发生错误: connection was closed in the middle of operation
+2025-03-25 11:23:27 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 11:24:03 | INFO | 正在启动 logistics-management
+2025-03-25 11:24:51 | ERROR | OAuth2登录过程中发生错误: connection was closed in the middle of operation
+2025-03-25 11:24:51 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 11:25:36 | INFO | 正在关闭 logistics-management
+2025-03-25 11:25:37 | INFO | 正在启动 logistics-management
+2025-03-25 11:26:07 | INFO | 正在关闭 logistics-management
+2025-03-25 11:26:08 | INFO | 正在启动 logistics-management
+2025-03-25 11:26:21 | INFO | 正在关闭 logistics-management
+2025-03-25 11:26:22 | INFO | 正在启动 logistics-management
+2025-03-25 11:49:06 | INFO | 正在关闭 logistics-management
+2025-03-25 11:49:07 | INFO | 正在启动 logistics-management
+2025-03-25 11:50:53 | ERROR | 数据库会话错误，执行回滚: connection was closed in the middle of operation
+2025-03-25 12:00:50 | INFO | 正在关闭 logistics-management
+2025-03-25 12:00:51 | INFO | 正在启动 logistics-management
+2025-03-25 12:01:18 | ERROR | 数据库会话错误，执行回滚: connection was closed in the middle of operation
+2025-03-25 12:02:04 | INFO | 正在启动 logistics-management
+2025-03-25 12:02:34 | ERROR | 认证用户(用户名:admin)时未知错误: hash could not be identified
+2025-03-25 12:02:34 | ERROR | OAuth2登录过程中发生错误: hash could not be identified
+2025-03-25 12:02:34 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 12:02:40 | ERROR | 认证用户(用户名:admin)时未知错误: hash could not be identified
+2025-03-25 12:02:40 | ERROR | 登录过程中发生错误: hash could not be identified
+2025-03-25 12:02:40 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 12:02:59 | ERROR | 认证用户(用户名:admin)时未知错误: hash could not be identified
+2025-03-25 12:02:59 | ERROR | 登录过程中发生错误: hash could not be identified
+2025-03-25 12:02:59 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 12:05:02 | ERROR | 认证用户(用户名:admin)时未知错误: hash could not be identified
+2025-03-25 12:05:02 | ERROR | 登录过程中发生错误: hash could not be identified
+2025-03-25 12:05:02 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 12:12:55 | INFO | 正在启动 logistics-management
+2025-03-25 12:13:30 | WARNING | 认证失败: 用户名'admin'不存在
+2025-03-25 12:13:30 | WARNING | 登录失败: 用户名或密码错误 (用户名: admin)
+2025-03-25 12:13:30 | ERROR | 数据库会话错误，执行回滚: 
+2025-03-25 12:15:38 | INFO | 正在启动 logistics-management
+2025-03-25 12:15:51 | INFO | 用户 admin (ID: 3) 登录成功
+2025-03-25 12:15:58 | INFO | 用户 admin (ID: 3) 通过OAuth2登录成功

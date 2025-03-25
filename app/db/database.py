@@ -1,120 +1,90 @@
-from sqlalchemy import text  # 新增导入
-from typing import AsyncGenerator, Dict, Any
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncSession,
     async_sessionmaker,
-    AsyncEngine,
 )
-from sqlalchemy.pool import QueuePool
+from sqlalchemy import URL, event
 from loguru import logger
-from contextlib import asynccontextmanager
-
-try:
-    from app.core.config import settings
-except ImportError:
-    # 在core.config导入失败的情况下，使用本地配置
-    from pydantic_settings import BaseSettings, SettingsConfigDict
-    import os
-
-    class DatabaseSettings(BaseSettings):
-        """数据库配置设置类"""
-        DB_HOST: str
-        DB_PORT: int
-        DB_USER: str
-        DB_PASSWORD: str
-        DB_NAME: str
-        
-        model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    # 从环境变量加载数据库配置
-    settings = DatabaseSettings()
-
-# 构建数据库连接URL
-DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@"
-    f"{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-)
-
-# 数据库引擎配置参数
-engine_kwargs: Dict[str, Any] = {
-    "echo": getattr(settings, "DEBUG", False),
-    "pool_size": 5,  # 连接池大小
-    "max_overflow": 10,  # 最大连接溢出数
-    "pool_timeout": 30,  # 获取连接超时时间
-    "pool_recycle": 1800,  # 连接回收时间(30分钟)
-    "pool_pre_ping": True,  # 连接前预检
-}
-
-# 创建异步数据库引擎
-engine: AsyncEngine = create_async_engine(DATABASE_URL, **engine_kwargs)
-
-# 创建异步会话工厂
-async_session_factory = async_sessionmaker(
-    engine,
-    expire_on_commit=False,  # 提交后不过期对象
-    autoflush=False,         # 不自动刷新
-    autocommit=False,        # 不自动提交
-)
+from typing import Annotated, AsyncGenerator
+import sys
+import asyncio
+from app.core.config import settings
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    依赖注入函数，用于获取数据库会话
-    
-    用法示例:
-    ```python
-    @router.get("/items/")
-    async def get_items(db: AsyncSession = Depends(get_db_session)):
-        result = await db.execute(select(Item))
-        return result.scalars().all()
-    ```
-    """
-    session = async_session_factory()
+def create_engine_and_session(url: str | URL):
     try:
-        logger.debug("创建新的数据库会话")
-        yield session
-    finally:
-        logger.debug("关闭数据库会话")
-        await session.close()
-
-
-@asynccontextmanager
-async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
-    """
-    上下文管理器，用于获取数据库会话
-    
-    用法示例:
-    ```python
-    async with get_db_context() as db:
-        result = await db.execute(select(Item))
-        items = result.scalars().all()
-    ```
-    """
-    session = async_session_factory()
-    try:
-        yield session
-    finally:
-        await session.close()
-
-
-async def init_db() -> None:
-    """
-    数据库初始化函数
-    可在应用启动时调用，执行初始化操作
-    
-    用法示例:
-    ```python
-    @app.on_event("startup")
-    async def startup_db_client():
-        await init_db()
-    ```
-    """
-    try:
-        # 测试数据库连接
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
-        logger.info("数据库连接成功")
+        # 数据库引擎 - 优化连接配置
+        engine = create_async_engine(
+            url, 
+            future=True, 
+            echo=settings.DEBUG,
+            pool_pre_ping=True,      # 自动检测断开的连接
+            pool_recycle=1800,       # 30分钟回收连接
+            pool_size=5,             # 连接池大小
+            max_overflow=10,         # 最大允许溢出的连接数
+            pool_timeout=30,         # 连接池获取超时
+            connect_args={
+                "timeout": 30,       # 连接超时30秒
+                "command_timeout": 30,  # 命令超时30秒
+            }
+        )
+        logger.success("数据库连接成功")
     except Exception as e:
-        logger.error(f"数据库连接失败: {str(e)}")
-        raise 
+        logger.error("❌ 数据库链接失败: {}", e)
+        sys.exit()
+    else:
+        db_session = async_sessionmaker(
+            bind=engine, 
+            autoflush=False, 
+            expire_on_commit=False,
+            class_=AsyncSession
+        )
+        return engine, db_session
+
+
+SQLALCHEMY_DATABASE_URL = URL.create(
+    "postgresql+asyncpg",
+    username=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME,
+)
+
+async_engine, async_db_session = create_engine_and_session(SQLALCHEMY_DATABASE_URL)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """获取数据库会话的异步生成器
+    
+    每个请求创建独立的会话，处理完毕后关闭
+    """
+    session = async_db_session()
+    try:
+        # 设置会话超时较长，确保有足够时间完成操作
+        await asyncio.wait_for(session.connection(), timeout=10.0)
+        yield session
+    except asyncio.TimeoutError:
+        logger.error("数据库连接超时")
+        await session.close()
+        # 创建新的会话重试
+        new_session = async_db_session()
+        yield new_session
+    except Exception as se:
+        logger.error("数据库会话错误，执行回滚: {}", se)
+        try:
+            await session.rollback()
+        except Exception as rollback_error:
+            logger.error("回滚失败: {}", rollback_error)
+        raise se
+    finally:
+        try:
+            logger.debug("关闭数据库会话")
+            await session.close()
+        except Exception as close_error:
+            logger.error("关闭会话失败: {}", close_error)
+
+
+# 定义会话依赖
+CurrentSession = Annotated[AsyncSession, Depends(get_db)]

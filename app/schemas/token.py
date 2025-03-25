@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -26,12 +26,31 @@ class TokenPayload(BaseModel):
     """
     sub: Optional[str] = None
     exp: int  # 过期时间戳
+    roles: Optional[List[int]] = None  # 用户角色ID列表
     
     model_config = {
         "json_schema_extra": {
             "example": {
-                "sub": "user@example.com",
-                "exp": 1639858800
+                "sub": "1",
+                "exp": 1639858800,
+                "roles": [1]
+            }
+        }
+    }
+
+
+class LoginRequest(BaseModel):
+    """
+    登录请求模型
+    """
+    username: str
+    password: str
+    
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "username": "admin",
+                "password": "password123"
             }
         }
     }

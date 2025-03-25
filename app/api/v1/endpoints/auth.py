@@ -1,83 +1,152 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import timedelta
+import asyncio
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
+from loguru import logger
 
-from app.db import get_db_session
-from app.schemas.auth import LoginRequest
-from app.schemas.token import Token
-from app.schemas.user import UserCreate, UserResponse
-from app.services.auth_service import login
-from app.services.user_service import create_user, get_user_by_username
+from app.core.config import settings
+from app.core.security import create_access_token
+from app.crud.user import authenticate_user, get_user_roles
+from app.db.database import CurrentSession
+from app.schemas.token import Token, LoginRequest
 
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=Token)
-async def login_access_token(
+async def retry_db_operation(operation, max_retries=3, *args, **kwargs):
+    """尝试执行数据库操作，失败时自动重试"""
+    retries = 0
+    last_error = None
+    
+    while retries < max_retries:
+        try:
+            return await operation(*args, **kwargs)
+        except (OperationalError, ConnectionError) as e:
+            retries += 1
+            last_error = e
+            logger.warning(f"数据库操作失败，重试 {retries}/{max_retries}: {str(e)}")
+            await asyncio.sleep(0.5)  # 短暂等待后重试
+    
+    # 所有重试都失败
+    logger.error(f"数据库操作在 {max_retries} 次重试后仍然失败: {str(last_error)}")
+    raise last_error
+
+
+@router.post("/login", response_model=Token, summary="用户登录")
+async def login(
     login_data: LoginRequest,
-    db: AsyncSession = Depends(get_db_session)
-):
+    db: CurrentSession,
+    background_tasks: BackgroundTasks
+) -> Token:
     """
-    OAuth2登录端点，获取访问令牌
+    使用用户名和密码登录获取访问令牌
+    
+    - **username**: 用户名
+    - **password**: 密码
     """
-    # 尝试登录
-    token = await login(db, login_data)
-    if not token:
-        # 登录失败
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码不正确",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        # 验证用户凭据
+        user = await authenticate_user(db, login_data.username, login_data.password)
+        if not user:
+            logger.warning(f"登录失败: 用户名或密码错误 (用户名: {login_data.username})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # 获取用户角色 - 使用重试机制
+        try:
+            user_roles = await retry_db_operation(get_user_roles, 3, db, user.id)
+            role_ids = [role.role_id for role in user_roles]
+        except Exception as e:
+            # 如果获取角色失败，默认给予最低权限继续
+            logger.error(f"获取用户角色失败: {str(e)}")
+            role_ids = []
+        
+        # 创建访问令牌
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            subject=user.id,
+            roles=role_ids,
+            expires_delta=access_token_expires
         )
-    
-    return token
-
-
-@router.post("/login/oauth2", response_model=Token)
-async def login_oauth2_compat(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db_session)
-):
-    """
-    兼容OAuth2标准的登录端点，用于与OAuth2客户端集成
-    """
-    # 转换为内部登录格式
-    login_data = LoginRequest(
-        username=form_data.username,
-        password=form_data.password
-    )
-    
-    # 尝试登录
-    token = await login(db, login_data)
-    if not token:
-        # 登录失败
+        
+        # 将记录日志放入后台任务，不阻塞响应
+        background_tasks.add_task(logger.info, f"用户 {user.username} (ID: {user.id}) 登录成功")
+        return Token(access_token=access_token, token_type="bearer")
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"数据库错误: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码不正确",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable. Please try again later."
         )
-    
-    return token
-
-
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user_data: UserCreate,
-    db: AsyncSession = Depends(get_db_session)
-):
-    """
-    用户注册端点
-    """
-    # 检查用户名是否已存在
-    existing_user = await get_user_by_username(db, user_data.username)
-    if existing_user:
+    except Exception as e:
+        logger.error(f"登录过程中发生错误: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户名已被注册"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during authentication",
         )
+
+
+@router.post("/login/oauth2", response_model=Token, summary="OAuth2 登录")
+async def login_oauth2(
+    db: CurrentSession,
+    background_tasks: BackgroundTasks,
+    form_data: OAuth2PasswordRequestForm = Depends()
+) -> Token:
+    """
+    使用OAuth2 Password流程登录获取访问令牌（适用于Swagger UI中的授权）
     
-    # 创建新用户
-    user = await create_user(db, user_data)
-    
-    return user 
+    - **username**: 用户名
+    - **password**: 密码
+    """
+    try:
+        # 验证用户凭据
+        user = await authenticate_user(db, form_data.username, form_data.password)
+        if not user:
+            logger.warning(f"OAuth2登录失败: 用户名或密码错误 (用户名: {form_data.username})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # 获取用户角色 - 使用重试机制
+        try:
+            user_roles = await retry_db_operation(get_user_roles, 3, db, user.id)
+            role_ids = [role.role_id for role in user_roles]
+        except Exception as e:
+            # 如果获取角色失败，默认给予最低权限继续
+            logger.error(f"获取用户角色失败: {str(e)}")
+            role_ids = []
+        
+        # 创建访问令牌
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            subject=user.id,
+            roles=role_ids,
+            expires_delta=access_token_expires
+        )
+        
+        # 将记录日志放入后台任务，不阻塞响应
+        background_tasks.add_task(logger.info, f"用户 {user.username} (ID: {user.id}) 通过OAuth2登录成功")
+        return Token(access_token=access_token, token_type="bearer")
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"数据库错误: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database service is currently unavailable. Please try again later."
+        )
+    except Exception as e:
+        logger.error(f"OAuth2登录过程中发生错误: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during authentication",
+        ) 

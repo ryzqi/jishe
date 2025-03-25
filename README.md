@@ -51,7 +51,23 @@ cp .env.example .env
 poetry run alembic upgrade head
 ```
 
-5. 启动开发服务器
+5. 初始化系统和创建管理员账户
+
+Windows:
+```bash
+create_admin.bat
+```
+
+Linux/macOS:
+```bash
+python -m app.scripts.initialize_system
+```
+
+初始化后，将创建以下角色和用户:
+- 角色: 超级管理员(role_id=1)、运输管理员(role_id=2)、仓库管理员(role_id=3)
+- 超级管理员账户: admin / 123456
+
+6. 启动开发服务器
 
 ```bash
 poetry run python -m app.main
@@ -70,13 +86,23 @@ poetry run uvicorn app.main:app --reload
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
-## 认证
+## 认证和授权系统
 
-系统使用OAuth2.0认证机制，基于JWT令牌实现。
+系统使用OAuth2.0认证机制，基于JWT令牌实现。支持多种角色并实现了基于角色的访问控制（RBAC）。
+
+### 角色设计
+
+系统设计了3种不同的角色，每个角色拥有不同的权限：
+
+1. **超级管理员** (role_id=1): 拥有系统全部功能的访问权限
+2. **运输管理员** (role_id=2): 拥有物流配送、无人机任务和巡检任务相关的权限
+3. **仓库管理员** (role_id=3): 拥有仓库和库存管理相关的权限
+
+角色权限采用了最小权限原则，每个角色只能访问其职责范围内的功能。
 
 ### 登录获取令牌
 
-```
+```http
 POST /api/v1/auth/login
 ```
 
@@ -104,18 +130,58 @@ POST /api/v1/auth/login
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
+### 获取当前用户信息
+
+```http
+GET /api/v1/users/me
+```
+
+响应：
+```json
+{
+  "id": 1,
+  "username": "admin"
+}
+```
+
+### 获取当前用户角色
+
+```http
+GET /api/v1/users/me/roles
+```
+
+响应：
+```json
+[
+  {
+    "role_id": 1,
+    "role_name": "超级管理员"
+  }
+]
+```
+
+### 角色权限划分
+
+| 角色 | 可访问功能 |
+|------|----------|
+| 超级管理员 | 所有功能 |
+| 运输管理员 | 无人机管理、巡检任务、物流配送 |
+| 仓库管理员 | 仓库管理、库存管理 |
+
 ### 用户注册
 
-```
-POST /api/v1/auth/register
+当前系统不提供公开注册功能，用户由超级管理员创建。
+
+```http
+POST /api/v1/users
 ```
 
 请求体：
 ```json
 {
   "username": "new_user",
-  "email": "user@example.com",
-  "password": "secure_password"
+  "password": "secure_password",
+  "role_ids": [2]
 }
 ```
 
@@ -143,11 +209,14 @@ app/
 ├── db/             # 数据库设置
 ├── models/         # 数据库模型
 ├── schemas/        # Pydantic模型
+├── scripts/        # 管理脚本
+│   ├── create_admin.py       # 创建管理员脚本
+│   ├── create_roles.py       # 创建角色脚本
+│   └── initialize_system.py  # 系统初始化脚本
 ├── services/       # 业务逻辑层
 ├── utils/          # 工具函数
 └── main.py         # 应用入口
 ```
-
 ## 最佳实践
 
 本项目遵循以下FastAPI最佳实践：
@@ -157,6 +226,7 @@ app/
 3. **依赖注入** - 使用FastAPI依赖注入系统管理资源
 4. **全异步操作** - 提高并发性能
 5. **统一错误处理** - 使用HTTPException和统一错误响应模型
+6. **角色权限控制** - 使用基于角色的访问控制系统
 
 ## 数据模型 (Data Models)
 
@@ -208,10 +278,7 @@ app/
 - **User** (`app/models/user.py`): 用户模型
   - `id`: 用户唯一标识
   - `username`: 用户名
-  - `email`: 电子邮件 
   - `password`: 用户密码
-  - `is_active`: 是否激活
-  - `is_superuser`: 是否为超级用户
 
 - **UserRole** (`app/models/user_role.py`): 用户角色关联模型
   - `user_id`: 用户唯一标识

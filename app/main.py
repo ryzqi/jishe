@@ -26,7 +26,7 @@ logger.add(
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="物流配送管理系统API",
+    description="物流配送管理系统",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",

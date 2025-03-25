@@ -9,16 +9,30 @@ from app.crud.user import (
     create_user,
     get_user_by_id,
     get_user_by_username,
-    get_user_by_email,
     update_user,
-    delete_user
+    delete_user,
+    authenticate_user,
+    get_user_roles
+)
+
+from app.crud.role import (
+    get_role_by_id,
+    get_role_by_name,
+    get_all_roles
 )
 
 __all__ = [
+    # 用户操作
     "create_user",
     "get_user_by_id", 
     "get_user_by_username", 
-    "get_user_by_email",
     "update_user",
-    "delete_user"
+    "delete_user",
+    "authenticate_user",
+    "get_user_roles",
+    
+    # 角色操作
+    "get_role_by_id",
+    "get_role_by_name",
+    "get_all_roles"
 ]

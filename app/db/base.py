@@ -17,19 +17,6 @@ class Base(AsyncAttrs, DeclarativeBase):
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
     
-    # 通用字段
-    # id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    # created_at: Mapped[datetime] = mapped_column(
-    #     DateTime(timezone=True),
-    #     server_default=func.now(),
-    #     nullable=False
-    # )
-    # updated_at: Mapped[datetime] = mapped_column(
-    #     DateTime(timezone=True),
-    #     server_default=func.now(),
-    #     onupdate=func.now(),
-    #     nullable=False
-    # )
     
     def to_dict(self) -> Dict[str, Any]:
         """

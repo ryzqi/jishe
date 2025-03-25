@@ -87,11 +87,12 @@ COMMENT ON COLUMN jishe.stock.all_count IS '总库存量';
 COMMENT ON COLUMN jishe.stock.last_add_count IS '新增库存量';
 COMMENT ON COLUMN jishe.stock.last_add_date IS '新增库存时间';
 
+
 -- 用户表（使用双引号避免保留字冲突）
 CREATE TABLE jishe."user" (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
-    password VARCHAR(100) NOT NULL
+    password VARCHAR(256) NOT NULL
 );
 COMMENT ON TABLE jishe."user" IS '用户表';
 COMMENT ON COLUMN jishe."user".id IS '用户唯一标识';

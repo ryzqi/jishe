@@ -1,0 +1,171 @@
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import (
+    get_current_user,
+    get_super_admin_user,
+    get_transport_admin_user,
+    get_warehouse_admin_user,
+    get_any_admin_user
+)
+from app.crud.user import (
+    create_user,
+    get_user_by_id,
+    update_user,
+    delete_user,
+    get_user_roles
+)
+from app.crud.role import get_all_roles
+from app.db.database import CurrentSession
+from app.models.user import User
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.role import RoleResponse
+
+
+router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
+async def read_users_me(
+    db: CurrentSession,
+    current_user: User = Depends(get_current_user)
+) -> UserResponse:
+    """
+    获取当前登录用户信息
+    """
+    return current_user
+
+
+@router.get("/me/roles", response_model=List[RoleResponse], summary="获取当前用户角色")
+async def read_user_me_roles(
+    db: CurrentSession,
+    current_user: User = Depends(get_current_user)
+) -> List[RoleResponse]:
+    """
+    获取当前登录用户的所有角色
+    """
+    roles = await get_user_roles(db, current_user.id)
+    return roles
+
+
+@router.get("", response_model=List[UserResponse], summary="获取所有用户")
+async def read_users(
+    db: CurrentSession,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_super_admin_user)
+) -> List[User]:
+    """
+    获取所有用户（仅限超级管理员）
+    
+    - **skip**: 跳过记录数
+    - **limit**: 返回记录数
+    """
+
+    query = select(User).offset(skip).limit(limit)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="创建新用户")
+async def create_new_user(
+    db: CurrentSession,
+    user_in: UserCreate,
+    role_ids: List[int],
+    current_user: User = Depends(get_super_admin_user)
+) -> User:
+    """
+    创建新用户（仅限超级管理员）
+    
+    - **user_in**: 用户创建模型
+    - **role_ids**: 角色ID列表
+    """
+    # 验证角色ID
+    available_roles = await get_all_roles(db)
+    available_role_ids = [role.role_id for role in available_roles]
+    
+    for role_id in role_ids:
+        if role_id not in available_role_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Role with ID {role_id} not found"
+            )
+    
+    # 创建用户
+    user = await create_user(db, user_in, role_ids)
+    return user
+
+
+@router.get("/{user_id}", response_model=UserResponse, summary="获取指定用户")
+async def read_user(
+    db: CurrentSession,
+    user_id: int,
+    current_user: User = Depends(get_any_admin_user)
+) -> User:
+    """
+    获取指定用户信息（任意管理员可访问）
+    
+    - **user_id**: 用户ID
+    """
+    user = await get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
+
+@router.put("/{user_id}", response_model=UserResponse, summary="更新用户")
+async def update_user_endpoint(
+    db: CurrentSession,
+    user_id: int,
+    user_in: UserUpdate,
+    current_user: User = Depends(get_super_admin_user),
+    role_ids: Optional[List[int]] = None
+) -> User:
+    """
+    更新用户信息（仅限超级管理员）
+    
+    - **user_id**: 用户ID
+    - **user_in**: 用户更新模型
+    - **role_ids**: 角色ID列表
+    """
+    # 更新用户
+    user = await update_user(db, user_id, user_in, role_ids)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除用户")
+async def delete_user_endpoint(
+    db: CurrentSession,
+    user_id: int,
+    current_user: User = Depends(get_super_admin_user)
+) -> None:
+    """
+    删除用户（仅限超级管理员）
+    
+    - **user_id**: 用户ID
+    """
+    # 检查当前用户是否正在删除自己
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete self"
+        )
+    
+    # 删除用户
+    success = await delete_user(db, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        ) 
