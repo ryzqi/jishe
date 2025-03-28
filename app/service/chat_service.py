@@ -2,7 +2,7 @@ from autogen_agentchat.messages import TextMessage
 from app.schemas.chat import ChatMessage
 from autogen_core import CancellationToken
 import json
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 from autogen_agentchat.messages import ChatMessage
 import asyncio
 from typing import Dict
@@ -19,7 +19,7 @@ from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 from google import genai
 from google.genai import types
-import os
+from app.core.config import settings
 
 
 class GeminiAssistantAgent(BaseChatAgent):
@@ -32,7 +32,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         name: str,
         description: str = "An agent that provides assistance with ability to use tools.",
         model: str = "gemini-2.0-flash",
-        api_key: str = os.environ["GEMINI_API_KEY"],
+        api_key: str = settings.GEMINI_API_KEY,
         system_message: str
         | None = "You are a helpful assistant that can respond to messages. Reply with TERMINATE when the task has been completed.",
     ):
@@ -51,7 +51,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         )  # 初始化模型上下文，用于存储对话历史
         self._model_client = genai.Client(
             api_key=api_key
-        )  # 初始化 Gemini 客户端，用于调用 API
+        )  
         self._system_message = system_message  # 保存系统消息，作为助手的初始指令
         self._model = model  # 保存模型名称
         self._tools = [
@@ -178,7 +178,7 @@ async def get_agent(user_id: str) -> AssistantAgent:
                     "请根据用户的问题，使用可用的工具来给出回答。\n\n"
                     "**导航与路线规划指南：**\n"
                     "1.  **识别需求：** 识别起点、终点和途经点。\n"
-                    "2.  **获取坐标：** 对每个地点使用 `geocode_and_extract_locations_json_async` 获取坐标。此工具返回包含经纬度的 JSON *字符串* (例如 `'{\"longitude\": 121.5, \"latitude\": 31.2}'`) 或空对象字符串 `'{}'`。\n"
+                    "2.  **获取坐标：** 对每个地点使用 `geocode_and_extract_locations` 获取坐标。此工具返回包含经纬度的 JSON *字符串* (例如 `'{\"longitude\": 121.5, \"latitude\": 31.2}'`) 或空对象字符串 `'{}'`。\n"
                     "3.  **处理坐标：** 从返回的 JSON 字符串中解析出经纬度。如果获取失败 (返回 '{}')，告知用户。\n"
                     "4.  **格式化坐标：** 将经纬度构造成 '经度,纬度' 格式的字符串 (例如 `'121.5,31.2'`)。\n"
                     "5.  **处理途经点：** 将多个途经点的 '经度,纬度' 字符串用英文分号 (`;`) 连接 (例如 `'lon1,lat1;lon2,lat2'`)。\n"

@@ -8,11 +8,8 @@ from typing import Optional, Dict, Any, List
 from app.core.config import settings
 
 
-
 GEOCODE_URL = "https://restapi.amap.com/v3/geocode/geo"
 DIRECTIONS_URL = "https://restapi.amap.com/v5/direction/driving"  
-
-
 
 
 def _geocode_tool_internal(
