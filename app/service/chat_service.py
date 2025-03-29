@@ -1,19 +1,25 @@
-from app.core.config import settings
 from autogen_agentchat.messages import TextMessage
 from app.schemas.chat import ChatMessage
 from autogen_core import CancellationToken
 import json
 from typing import AsyncGenerator
-from typing import Sequence  # 用于异步生成器和序列类型
+from autogen_agentchat.messages import ChatMessage
+import asyncio
+from typing import Dict
+from autogen_agentchat.agents import AssistantAgent
+from app.service.gaode import (
+    geocode_and_extract_locations,
+    get_amap_driving_directions,
+)
+from typing import Sequence
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.messages import AgentEvent
 from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 from google import genai
 from google.genai import types
-import asyncio
-from typing import Dict
+from app.core.config import settings
 
 
 class GeminiAssistantAgent(BaseChatAgent):
@@ -28,14 +34,14 @@ class GeminiAssistantAgent(BaseChatAgent):
         model: str = "gemini-2.0-flash",
         api_key: str = settings.GEMINI_API_KEY,
         system_message: str
-        | None = "你是物流管理系统的智能助手，请根据用户的问题给出最合适的回答。",
+        | None = "You are a helpful assistant that can respond to messages. Reply with TERMINATE when the task has been completed.",
     ):
         """
         初始化 GeminiAssistantAgent。
 
         :param name: 代理的名称
         :param description: 代理的描述，默认为 "An agent that provides assistance with ability to use tools."
-        :param model: 使用的 Gemini 模型名称，默认为 "gemini-2.0-flash"
+        :param model: 使用的 Gemini 模型名称，默认为 "gemini-1.5-flash-002"
         :param api_key: Gemini API 密钥，默认为环境变量 "GEMINI_API_KEY" 的值
         :param system_message: 系统消息，默认为助手的基本指令
         """
@@ -45,9 +51,13 @@ class GeminiAssistantAgent(BaseChatAgent):
         )  # 初始化模型上下文，用于存储对话历史
         self._model_client = genai.Client(
             api_key=api_key
-        )  # 初始化 Gemini 客户端，用于调用 API
+        )  
         self._system_message = system_message  # 保存系统消息，作为助手的初始指令
         self._model = model  # 保存模型名称
+        self._tools = [
+            geocode_and_extract_locations,
+            get_amap_driving_directions,
+        ]
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
@@ -122,6 +132,7 @@ class GeminiAssistantAgent(BaseChatAgent):
             config=types.GenerateContentConfig(
                 system_instruction=self._system_message,  # 系统指令
                 temperature=0.3,  # 控制生成内容的随机性，较低的值使输出更确定
+                tools=self._tools
             ),
         )
 
@@ -150,18 +161,31 @@ class GeminiAssistantAgent(BaseChatAgent):
 
         :param cancellation_token: 取消令牌
         """
-        await self._model_context.clear()
+        await self._model_context.clear()  # 清除模型上下文，重置对话状态
 
 
-sessions: Dict[str, GeminiAssistantAgent] = {}
+sessions: Dict[str, AssistantAgent] = {}
 session_lock = asyncio.Lock()
 
 
-async def get_agent(user_id: str) -> GeminiAssistantAgent:
+async def get_agent(user_id: str) -> AssistantAgent:
     async with session_lock:
         if user_id not in sessions:
             sessions[user_id] = GeminiAssistantAgent(
-                name=f"gemini_assistant_{user_id}",
+                name=f"assistant_{user_id}",
+                system_message=(
+                    "你是一个物流配送管理助手。\n"
+                    "请根据用户的问题，使用可用的工具来给出回答。\n\n"
+                    "**导航与路线规划指南：**\n"
+                    "1.  **识别需求：** 识别起点、终点和途经点。\n"
+                    "2.  **获取坐标：** 对每个地点使用 `geocode_and_extract_locations` 获取坐标。此工具返回包含经纬度的 JSON *字符串* (例如 `'{\"longitude\": 121.5, \"latitude\": 31.2}'`) 或空对象字符串 `'{}'`。\n"
+                    "3.  **处理坐标：** 从返回的 JSON 字符串中解析出经纬度。如果获取失败 (返回 '{}')，告知用户。\n"
+                    "4.  **格式化坐标：** 将经纬度构造成 '经度,纬度' 格式的字符串 (例如 `'121.5,31.2'`)。\n"
+                    "5.  **处理途经点：** 将多个途经点的 '经度,纬度' 字符串用英文分号 (`;`) 连接 (例如 `'lon1,lat1;lon2,lat2'`)。\n"
+                    "6.  **调用路线规划：** 使用 `get_amap_driving_directions` 工具，传入格式化后的 `origin`, `destination`, 和可选的 `waypoints` 坐标字符串。\n"
+                    "7.  **整合并回答：** `get_amap_driving_directions` 返回包含路线详情或错误的 JSON *字符串*。解析此字符串，提取关键信息（距离、时间、主要步骤），并以清晰、友好的方式回复用户。**注意：不要直接输出原始 JSON 字符串给用户。**\n\n"
+                    "**其他情况：** 对于非导航类问题，直接回答。"
+                ),
             )
         return sessions[user_id]
 

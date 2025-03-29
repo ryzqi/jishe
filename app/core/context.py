@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from loguru import logger
-
+import aiohttp
 from app.core.config import settings
 
 
@@ -16,11 +16,11 @@ async def app_lifespan_context(app):
     """
     # 启动时执行的操作
     logger.info(f"正在启动 {settings.APP_NAME}")
-    
 
     
     # 提供应用上下文
     yield
     
     # 关闭时执行的操作
-    logger.info(f"正在关闭 {settings.APP_NAME}") 
+    logger.info(f"正在关闭 {settings.APP_NAME}")
+
