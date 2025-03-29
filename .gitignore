@@ -1,4 +1,4 @@
-.env
+app/.env
 test.sql
 logs
 *.log
@@ -9,3 +9,7 @@ logs
 *.log.*.*.*.*.*
 *.log.*.*.*.*.*.*
 *.log.*.*.*.*.*.*.*
+__pycache__/
+*.py[cod]
+*$py.class
+.idea/
