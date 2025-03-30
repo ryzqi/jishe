@@ -1,10 +1,7 @@
 import json
 import psycopg2
 import psycopg2.extras  
-from psycopg2 import (
-    sql,
-)  
-from typing import Optional, Dict, Any, List, Union  
+from typing import Optional, Dict, Any  
 import re
 from app.core.config import settings
 
@@ -14,15 +11,7 @@ FORBIDDEN_TABLES = ["user", "user_role", "role"]
 def _find_forbidden_tables(query: str) -> Optional[str]:
     """Checks if the query attempts to access forbidden tables."""
     lower_query = query.lower()
-    # Use regex to find table names more accurately, avoiding partial matches within words.
-    # Looks for the table name preceded by typical keywords like FROM, JOIN, UPDATE, INTO
-    # and followed by a word boundary (\b) or end of string ($).
-    # This is still not foolproof against highly obfuscated SQL, but better than simple contains.
     for table in FORBIDDEN_TABLES:
-        # Pattern examples: \bfrom\s+user\b, \bjoin\s+user\b, \bupdate\s+user\b, \binto\s+user\b
-        # Matches variations like 'FROM user', ' join   user ', 'UPDATE "user"', 'into public.user' etc.
-        # It's complex to cover all schema/quoting variations perfectly with regex.
-        # We check for common patterns.
         pattern = rf"(?:from|join|update|into)\s+[\w.\"\[\]]*{re.escape(table)}\b"
         if re.search(pattern, lower_query):
             return table
@@ -80,8 +69,6 @@ def query_database(sql_query: str) -> str:
         }
         return json.dumps(result_payload)
 
-    # Determine if the query is likely a SELECT based on the start (case-insensitive)
-    # This helps decide whether to fetch rows or expect row count.
     is_select_query = sql_query.strip().lower().startswith("select")
 
     try:
@@ -104,41 +91,38 @@ def query_database(sql_query: str) -> str:
 
         # 4. Process Results
         if is_select_query and cursor.description:
-            # Fetch results for SELECT queries
+
             rows = cursor.fetchall()
-            # Convert fetched rows (list of DictRow) to standard list of dicts
+
             result_payload = {"data": [dict(row) for row in rows]}
         else:
-            # For non-SELECT or SELECT without results (e.g., SELECT INTO),
-            # report status and rows affected.
-            # cursor.rowcount works for INSERT, UPDATE, DELETE.
+
             rows_affected = cursor.rowcount
             result_payload = {"status": "success", "rows_affected": rows_affected}
-            # Commit changes for modification queries
-            conn.commit()  # Commit is needed *only if* data was modified
+
+            conn.commit()  
 
     # 5. Handle Potential Errors
     except psycopg2.Error as db_err:
-        # Catch specific database errors (OperationalError, ProgrammingError, etc.)
+
         if conn:
-            conn.rollback()  # Roll back transaction on error
-        error_type = type(db_err).__name__  # e.g., "ProgrammingError"
-        # pgcode and pgerror provide more specific PostgreSQL error details
-        error_message = str(db_err).split("\n")[0]  # Get the primary error message line
+            conn.rollback()  
+        error_type = type(db_err).__name__  
+        error_message = str(db_err).split("\n")[0]  
         print(
             f"Database Error ({error_type}): {db_err.pgcode} - {db_err.pgerror}"
-        )  # Log details
+        )  
         result_payload = {
             "error": "Database Error",
             "message": error_message,
             "type": error_type,
         }
     except Exception as e:
-        # Catch other unexpected errors
+
         if conn:
             conn.rollback()
         error_type = type(e).__name__
-        print(f"Unexpected Error during DB query: {e}")  # Log details
+        print(f"Unexpected Error during DB query: {e}")  
         result_payload = {
             "error": "Unexpected Error",
             "message": str(e),
@@ -150,8 +134,6 @@ def query_database(sql_query: str) -> str:
         if cursor:
             cursor.close()
         if conn:
-            # If we committed successfully or rolled back on error, we can close.
-            # If autocommit were True, closing would be sufficient.
             conn.close()
 
     # 7. Serialize Result to JSON
