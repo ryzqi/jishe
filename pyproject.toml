@@ -27,6 +27,8 @@ google-genai = "^1.7.0"
 autogen-ext = {extras = ["openai"], version = "^0.4.9.2"}
 aiohttp = "^3.11.14"
 google-generativeai = "^0.8.4"
+duckduckgo-search = "^7.5.5"
+psycopg2 = "^2.9.10"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
