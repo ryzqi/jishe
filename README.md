@@ -54,16 +54,19 @@ poetry run alembic upgrade head
 5. 初始化系统和创建管理员账户
 
 Windows:
+
 ```bash
 create_admin.bat
 ```
 
 Linux/macOS:
+
 ```bash
 python -m app.scripts.initialize_system
 ```
 
 初始化后，将创建以下角色和用户:
+
 - 角色: 超级管理员(role_id=1)、运输管理员(role_id=2)、仓库管理员(role_id=3)
 - 超级管理员账户: admin / 123456
 
@@ -107,6 +110,7 @@ POST /api/v1/auth/login
 ```
 
 请求体：
+
 ```json
 {
   "username": "your_username",
@@ -115,6 +119,7 @@ POST /api/v1/auth/login
 ```
 
 响应：
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -137,6 +142,7 @@ GET /api/v1/users/me
 ```
 
 响应：
+
 ```json
 {
   "id": 1,
@@ -151,6 +157,7 @@ GET /api/v1/users/me/roles
 ```
 
 响应：
+
 ```json
 [
   {
@@ -162,11 +169,11 @@ GET /api/v1/users/me/roles
 
 ### 角色权限划分
 
-| 角色 | 可访问功能 |
-|------|----------|
-| 超级管理员 | 所有功能 |
+| 角色       | 可访问功能                     |
+| ---------- | ------------------------------ |
+| 超级管理员 | 所有功能                       |
 | 运输管理员 | 无人机管理、巡检任务、物流配送 |
-| 仓库管理员 | 仓库管理、库存管理 |
+| 仓库管理员 | 仓库管理、库存管理             |
 
 ### 用户注册
 
@@ -177,6 +184,7 @@ POST /api/v1/users
 ```
 
 请求体：
+
 ```json
 {
   "username": "new_user",
@@ -217,6 +225,7 @@ app/
 ├── utils/          # 工具函数
 └── main.py         # 应用入口
 ```
+
 ## 最佳实践
 
 本项目遵循以下FastAPI最佳实践：
@@ -234,53 +243,54 @@ app/
 
 ### SQLAlchemy ORM 模型 (`app/models/`)
 
-所有模型都继承自`app/db/base.py`中的`Base`类，自动包含id、created_at和updated_at字段。
+所有模型都继承自 `app/db/base.py`中的 `Base`类，自动包含id、created_at和updated_at字段。
 
 - **Drone** (`app/models/drone.py`): 无人机模型
+
   - `id`: 无人机编号
   - `drone_type`: 机型
   - `states`: 无人机状态：1->正常工作，0->未工作
-
 - **Error** (`app/models/error.py`): 问题模型
+
   - `error_id`: 问题编号
   - `error_content`: 问题内容
   - `error_found_time`: 问题发现时间
   - `states`: 问题状态：0->待解决，1->正在解决
-
 - **Goods** (`app/models/goods.py`): 货物模型
+
   - `id`: 货物种类唯一标识
   - `goods_name`: 货物种类名称
-
 - **Patrol** (`app/models/patrol.py`): 巡查记录模型
+
   - `id`: 巡查记录唯一标识
   - `drone_id`: 无人机编号
   - `address`: 在寻路段
   - `predict_fly_time`: 预计飞行时长
   - `fly_start_datetime`: 开始飞行时间
-
 - **Role** (`app/models/role.py`): 角色模型
+
   - `role_id`: 角色唯一标识
   - `role_name`: 角色名称
-
 - **Warehouse** (`app/models/warehouse.py`): 仓库模型
+
   - `id`: 仓库唯一标识
   - `warehouse_name`: 仓库名称
   - `states`: 仓库状态
-
 - **Stock** (`app/models/stock.py`): 库存模型
+
   - `id`: 库存唯一标识
   - `warehouse_id`: 仓库唯一标识
   - `goods_id`: 货物种类唯一标识
   - `all_count`: 总库存量
   - `last_add_count`: 新增库存量
   - `last_add_date`: 新增库存时间
-
 - **User** (`app/models/user.py`): 用户模型
+
   - `id`: 用户唯一标识
   - `username`: 用户名
   - `password`: 用户密码
-
 - **UserRole** (`app/models/user_role.py`): 用户角色关联模型
+
   - `user_id`: 用户唯一标识
   - `role_id`: 角色唯一标识
 
@@ -288,9 +298,9 @@ app/
 
 每个数据模型都有对应的Pydantic模型，用于API输入验证和响应生成：
 
-- **创建模型**（如`DroneCreate`）: 用于创建资源的请求体验证
-- **更新模型**（如`DroneUpdate`）: 用于更新资源的请求体验证，所有字段都是可选的
-- **响应模型**（如`DroneResponse`）: 用于API响应的序列化
+- **创建模型**（如 `DroneCreate`）: 用于创建资源的请求体验证
+- **更新模型**（如 `DroneUpdate`）: 用于更新资源的请求体验证，所有字段都是可选的
+- **响应模型**（如 `DroneResponse`）: 用于API响应的序列化
 
 ## 关系映射
 
@@ -300,7 +310,3 @@ app/
 - **Warehouse - Stock**: 一对多（一个仓库可以有多个库存记录）
 - **Goods - Stock**: 一对多（一种货物可以在多个仓库有库存）
 - **User - Role**: 多对多（通过UserRole关联表）
-
-## 开发者
-
-- 郑博文
