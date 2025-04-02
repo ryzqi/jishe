@@ -40,13 +40,14 @@ async def login(
     login_data: LoginRequest,
     db: CurrentSession,
     background_tasks: BackgroundTasks,
-    response: Response  # 新增参数注入
+    response: Response
 ) -> Token:
     """
     使用用户名和密码登录获取访问令牌
     
     - **username**: 用户名
     - **password**: 密码
+    - **role_name**: 角色名称
     """
     try:
         # 验证用户凭据
@@ -59,37 +60,48 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # 获取用户角色 - 使用重试机制
-        role_id = None
+        # 获取用户所有角色 - 使用重试机制
         try:
             user_roles = await retry_db_operation(get_user_roles, 3, db, user.id)
-            for role in user_roles:
-                print(f"role_name:{role.role_name} role_id:{role.role_id}")
-                if role.role_name == login_data.role_name:  # 使用点号访问
-                    role_id = role.role_id  # 使用点号访问
-                    break  # 找到匹配后立即退出循环
+            # 获取用户所有角色ID列表
+            all_role_ids = [role.role_id for role in user_roles]
+            
+            if not all_role_ids:
+                logger.warning(f"登录失败: 用户 {login_data.username} 没有任何角色权限")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Access denied. User has no roles.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # 验证请求的角色是否在用户权限列表中
+            requested_role = next((role for role in user_roles if role.role_name == login_data.role_name), None)
+            if not requested_role:
+                logger.warning(f"登录失败: 用户 {login_data.username} 没有 {login_data.role_name} 角色权限")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Access denied. No matching role found.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+                
         except Exception as e:
-            # 如果获取角色失败，默认给予最低权限继续
             logger.error(f"获取用户角色失败: {str(e)}")
-
-        if role_id is None:
-            logger.warning(f"登录失败: 用户名或密码错误 (用户名: {login_data.username})")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Access denied.",
+                detail="Failed to verify user roles.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # 创建访问令牌
+        # 创建访问令牌，使用用户所有角色ID列表
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             subject=user.id,
-            roles=role_id,
+            roles=all_role_ids,  # 使用用户所有角色ID列表
             expires_delta=access_token_expires
         )
 
         # 将记录日志放入后台任务，不阻塞响应
-        background_tasks.add_task(logger.info, f"用户 {user.username} (ID: {user.id}) 登录成功")
+        background_tasks.add_task(logger.info, f"用户 {user.username} (ID: {user.id}) 登录成功，角色: {login_data.role_name}")
         return Token(access_token=access_token, token_type="bearer")
     except HTTPException:
         raise
@@ -100,10 +112,10 @@ async def login(
             detail="Database service is currently unavailable. Please try again later."
         )
     except Exception as e:
-        logger.error(f"登录过程中发生错误: {str(e)}")
+        logger.error(f"登录过程发生未知错误: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during authentication",
+            detail="An unexpected error occurred. Please try again later."
         )
 
 
