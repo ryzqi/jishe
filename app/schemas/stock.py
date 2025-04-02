@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,7 @@ class StockBase(BaseModel):
     goods_id: int = Field(..., description="货物种类唯一标识")
     all_count: int = Field(..., description="总库存量", ge=0)
     last_add_count: int = Field(..., description="新增库存量", ge=0)
-    last_add_date: datetime = Field(..., description="新增库存时间")
+    last_add_time: Optional[datetime] = None
 
 
 class StockCreate(StockBase):
@@ -18,18 +18,20 @@ class StockCreate(StockBase):
     pass
 
 
-class StockUpdate(BaseModel):
+class StockUpdate(StockBase):
     """更新库存请求模型"""
     warehouse_id: Optional[int] = Field(None, description="仓库唯一标识")
     goods_id: Optional[int] = Field(None, description="货物种类唯一标识")
     all_count: Optional[int] = Field(None, description="总库存量", ge=0)
     last_add_count: Optional[int] = Field(None, description="新增库存量", ge=0)
-    last_add_date: Optional[datetime] = Field(None, description="新增库存时间")
+    last_add_time: Optional[datetime] = Field(None, description="新增库存时间")
 
 
 class StockResponse(StockBase):
     """库存响应模型"""
     id: int = Field(..., description="库存唯一标识")
+    created_at: datetime
+    updated_at: datetime
     
     model_config = {
         "from_attributes": True,
@@ -40,7 +42,13 @@ class StockResponse(StockBase):
                 "goods_id": 1,
                 "all_count": 100,
                 "last_add_count": 20,
-                "last_add_date": "2023-11-15T14:30:00"
+                "last_add_time": "2023-11-15T14:30:00"
             }
         }
-    } 
+    }
+
+
+class StockStatisticsResponse(BaseModel):
+    categories: List[str]
+    existingData: List[int]
+    newData: List[int] 

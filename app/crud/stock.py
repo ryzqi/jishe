@@ -6,7 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
 from app.models.stock import Stock
-from app.schemas.stock import StockCreate, StockUpdate
+from app.schemas.stock import StockCreate, StockUpdate, StockStatisticsResponse
+from app.models.goods import Goods
 
 
 async def create_stock(db: AsyncSession, stock: StockCreate) -> Stock:
@@ -130,3 +131,49 @@ async def delete_stock(db: AsyncSession, stock_id: int) -> bool:
         logger.error(f"删除库存记录(ID:{stock_id})失败: {str(e)}")
         await db.rollback()
         raise
+
+
+async def get_stock_statistics_by_warehouse(
+    db: AsyncSession,
+    warehouse_id: int
+) -> StockStatisticsResponse:
+    """
+    获取指定仓库的库存统计数据
+    
+    Args:
+        db: 数据库会话
+        warehouse_id: 仓库ID
+        
+    Returns:
+        StockStatisticsResponse: 包含分类、现有数据和新增数据的统计信息
+    """
+    # 构建查询
+    query = (
+        select(
+            Goods.goods_name,
+            Stock.all_count,
+            Stock.last_add_count
+        )
+        .join(Stock, Stock.goods_id == Goods.id)
+        .where(Stock.warehouse_id == warehouse_id)
+    )
+    
+    # 执行查询
+    result = await db.execute(query)
+    rows = result.all()
+    
+    # 提取数据
+    categories = []
+    existing_data = []
+    new_data = []
+    
+    for row in rows:
+        categories.append(row.goods_name)
+        existing_data.append(row.all_count)
+        new_data.append(row.last_add_count)
+    
+    return StockStatisticsResponse(
+        categories=categories,
+        existingData=existing_data,
+        newData=new_data
+    )
