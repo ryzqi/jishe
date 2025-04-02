@@ -106,15 +106,31 @@ async def delete_stock_endpoint(
 
 
 @router.get("/warehouse/{warehouse_id}/statistics", summary="获取仓库库存统计")
-async def get_warehouse_statistics_endpoint(
-    db: CurrentSession,
+async def get_warehouse_statistics(
     warehouse_id: int,
+    db: CurrentSession,
     user: str = Depends(get_current_user)
 ) -> Dict[str, List]:
-    """获取仓库库存统计数据"""
+    """
+    获取指定仓库的库存统计信息
+    
+    - **warehouse_id**: 仓库ID
+    - **user**: 当前登录用户
+    """
     try:
-        return await get_warehouse_stock_statistics(db, warehouse_id)
+        # 获取统计信息
+        statistics = await get_warehouse_stock_statistics(db, warehouse_id)
+        
+        # 限制每个列表的数据数量不超过5个
+        if statistics["yAxisData"] and len(statistics["yAxisData"]) > 5:
+            statistics["yAxisData"] = statistics["yAxisData"][:5]
+            statistics["seriesData"] = statistics["seriesData"][:5]
+            
+        return statistics
     except Exception as e:
-        logger.error(f"获取仓库库存统计数据失败: {str(e)}")
-        raise HTTPException(status_code=500, detail="获取仓库库存统计数据失败")
+        logger.error(f"获取仓库统计信息失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取仓库统计信息失败"
+        )
 
