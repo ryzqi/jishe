@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -51,13 +51,13 @@ async def read_user_me_roles(
     return roles
 
 
-@router.get("", response_model=List[UserResponse], summary="获取所有用户")
+@router.get("", summary="获取所有用户")
 async def read_users(
     db: CurrentSession,
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_super_admin_user)
-) -> List[User]:
+):
     """
     获取所有用户（仅限超级管理员）
     
@@ -65,9 +65,18 @@ async def read_users(
     - **limit**: 返回记录数
     """
 
-    query = select(User).offset(skip).limit(limit)
+    query = select(
+        User.id,
+        User.username,
+        User.name,
+        User.email,
+        User.phone,
+        func.to_char(User.createtime, "YYYY-MM-DD HH24:MI:SS").label("createTime")  # 格式化时间并别名
+    ).offset(skip).limit(limit)
+
     result = await db.execute(query)
-    return list(result.scalars().all())
+    users = result.mappings().all()  # 返回字典列表，如 [{"id": 1, "name": "张三", ...}]
+    return users
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="创建新用户")
