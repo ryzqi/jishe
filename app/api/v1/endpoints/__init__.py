@@ -8,5 +8,6 @@ from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.users import router as users_router
 from app.api.v1.endpoints.chat import router as chat_router
 from app.api.v1.endpoints.stock import router as stock_router
+from app.api.v1.endpoints.patrol import router as patrol_router
 
-__all__ = ["auth_router", "users_router", "chat_router", "stock_router"]
+__all__ = ["auth_router", "users_router", "chat_router", "stock_router", "patrol_router"]

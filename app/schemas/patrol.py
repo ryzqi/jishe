@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, time
 from pydantic import BaseModel, Field
 
@@ -40,4 +40,41 @@ class PatrolResponse(PatrolBase):
                 "fly_start_datetime": "2023-11-15T10:00:00"
             }
         }
-    } 
+    }
+
+
+class PatrolInfo(BaseModel):
+    """巡逻信息模型"""
+    机型: str = Field(..., description="无人机型号")
+    编号: int = Field(..., description="无人机编号")
+    巡查路段: str = Field(..., description="巡查路段")
+    状态: str = Field(..., description="工作状态")
+    预计续航时长: str = Field(..., description="预计续航时长")
+    已工作时长: str = Field(..., description="已工作时长")
+
+
+class PatrolListResponse(BaseModel):
+    """巡逻列表响应模型"""
+    patrols: List[PatrolInfo]
+
+
+class RoadConditionInfo(BaseModel):
+    """道路状况信息模型"""
+    id: str = Field(..., description="无人机编号")
+    time: str = Field(..., description="更新时间")
+    status: str = Field(..., description="道路状况")
+
+
+class RoadConditionResponse(BaseModel):
+    """道路状况响应模型"""
+    conditions: List[RoadConditionInfo]
+
+
+class StatusSummaryResponse(BaseModel):
+    """状态统计响应模型"""
+    total: int
+    flying: int
+    inspecting: int
+    issuesFound: int
+    pendingIssues: int
+    solvingIssues: int 
