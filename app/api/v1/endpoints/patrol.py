@@ -1,9 +1,11 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 
 from app.db.database import CurrentSession
-from app.crud.patrol import get_patrol_list, get_road_conditions, get_status_summary
-from app.schemas.patrol import PatrolListResponse, RoadConditionResponse, StatusSummaryResponse
+from app.crud.patrol import get_patrol_list, get_road_conditions, get_status_summary, get_all_errors_with_user_info
+from app.schemas.patrol import PatrolListResponse, RoadConditionResponse, StatusSummaryResponse, ErrorUpdateResponse
 from app.core.security import get_current_user
 
 
@@ -93,4 +95,21 @@ async def get_status_summary_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取状态统计信息失败"
-        ) 
+        )
+
+
+@router.get("/error_update", response_model=List[ErrorUpdateResponse], summary="获取状态统计")
+async def get_error_update(
+        db: CurrentSession,
+        user: str = Depends(get_current_user)
+) -> List[ErrorUpdateResponse]:
+    """
+    """
+    try:
+        return await get_all_errors_with_user_info(db)
+    except Exception as e:
+        logger.error(f"获取统计信息失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取状态统计信息失败"
+        )

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime
+from sqlalchemy import Column, String, Text, DateTime, Integer
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import func
@@ -27,6 +27,12 @@ class Error(Base):
     error_content: Mapped[str] = mapped_column(Text, nullable=False)
     error_found_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     states: Mapped[str] = mapped_column(String(1), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,  # 是否允许为空（按需调整）
+        comment="关联的用户ID（无外键约束）"
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False, comment="问题标题")
     
     # 覆盖基类中的通用字段，因为我们已经移除了id
     @declared_attr.directive

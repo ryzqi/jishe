@@ -77,4 +77,13 @@ class StatusSummaryResponse(BaseModel):
     inspecting: int
     issuesFound: int
     pendingIssues: int
-    solvingIssues: int 
+    solvingIssues: int
+
+
+class ErrorUpdateResponse(BaseModel):
+    id: int
+    sender: str
+    title: str
+    content: str
+    createTime: str
+    status: str
