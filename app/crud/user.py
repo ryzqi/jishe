@@ -5,11 +5,11 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
-from app.models.user import User
-from app.models.user_role import UserRole
-from app.models.role import Role
-from app.core.password import verify_password, get_password_hash
-from app.schemas.user import UserCreate, UserUpdate
+from models.user import User
+from models.user_role import UserRole
+from models.role import Role
+from core.password import verify_password, get_password_hash
+from schemas.user import UserCreate, UserUpdate
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:

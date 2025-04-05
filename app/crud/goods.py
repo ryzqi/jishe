@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
-from app.models.goods import Goods
-from app.schemas.goods import GoodsCreate, GoodsUpdate
+from models.goods import Goods
+from schemas.goods import GoodsCreate, GoodsUpdate
 
 
 async def create_goods(db: AsyncSession, goods: GoodsCreate) -> Goods:

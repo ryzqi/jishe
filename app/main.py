@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import sys
 
-from app.core.config import settings
-from app.core.context import app_lifespan_context
-from app.api import api_router
+from core.config import settings
+from core.context import app_lifespan_context
+from api import api_router
 
 # 配置日志系统
 logger.remove()  
@@ -66,7 +66,7 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app",
+        "main:app",
         host=settings.HOST,
         port=settings.PORT,
         reload=settings.DEBUG,

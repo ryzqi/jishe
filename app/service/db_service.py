@@ -3,7 +3,7 @@ import psycopg2
 import psycopg2.extras  
 from typing import Optional, Dict, Any  
 import re
-from app.core.config import settings
+from core.config import settings
 
 
 FORBIDDEN_TABLES = ["user", "user_role", "role"]

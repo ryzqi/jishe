@@ -13,11 +13,11 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from sqlalchemy import select
-from app.db.database import async_db_session
-from app.models.user import User
-from app.models.role import Role
-from app.models.user_role import UserRole
-from app.core.password import get_password_hash
+from db.database import async_db_session
+from models.user import User
+from models.role import Role
+from models.user_role import UserRole
+from core.password import get_password_hash
 from loguru import logger
 
 

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from loguru import logger
 import aiohttp
-from app.core.config import settings
+from core.config import settings
 
 
 @asynccontextmanager

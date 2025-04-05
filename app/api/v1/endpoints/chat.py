@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from app.service.chat_service import chat, reset_chat
-from app.schemas.chat import ChatMessage
+from service.chat_service import chat, reset_chat
+from schemas.chat import ChatMessage
 from fastapi.responses import StreamingResponse
 from fastapi.responses import JSONResponse
-from app.core.security import get_current_user
+from core.security import get_current_user
 
 router = APIRouter()
 

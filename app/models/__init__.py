@@ -1,13 +1,13 @@
 # Models module init 
-from app.models.drone import Drone
-from app.models.error import Error
-from app.models.goods import Goods
-from app.models.patrol import Patrol
-from app.models.role import Role
-from app.models.warehouse import Warehouse
-from app.models.stock import Stock
-from app.models.user import User
-from app.models.user_role import UserRole
+from models.drone import Drone
+from models.error import Error
+from models.goods import Goods
+from models.patrol import Patrol
+from models.role import Role
+from models.warehouse import Warehouse
+from models.stock import Stock
+from models.user import User
+from models.user_role import UserRole
 
 __all__ = [
     "Drone",

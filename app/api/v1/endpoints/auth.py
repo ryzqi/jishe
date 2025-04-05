@@ -5,11 +5,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from loguru import logger
 
-from app.core.config import settings
-from app.core.security import create_access_token
-from app.crud.user import authenticate_user, get_user_roles
-from app.db.database import CurrentSession
-from app.schemas.token import Token, LoginRequest
+from core.config import settings
+from core.security import create_access_token
+from crud.user import authenticate_user, get_user_roles
+from db.database import CurrentSession
+from schemas.token import Token, LoginRequest
 from fastapi.responses import Response  # 导入Response
 
 

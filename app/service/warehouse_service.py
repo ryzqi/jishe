@@ -4,10 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
-from app.models.goods import Goods
-from app.models.stock import Stock
-from app.crud.goods import get_all_goods
-from app.crud.stock import get_stocks_by_warehouse
+from models.goods import Goods
+from models.stock import Stock
+from crud.goods import get_all_goods
+from crud.stock import get_stocks_by_warehouse
 
 
 async def get_warehouse_stock_statistics(db: AsyncSession, warehouse_id: int) -> Dict[str, List]:

@@ -5,7 +5,7 @@ from requests.exceptions import (
     JSONDecodeError,
 )  
 from typing import Optional, Dict, Any, List
-from app.core.config import settings
+from core.config import settings
 
 
 GEOCODE_URL = "https://restapi.amap.com/v3/geocode/geo"

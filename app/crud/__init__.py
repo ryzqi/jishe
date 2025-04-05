@@ -5,7 +5,7 @@ CRUD操作模块
 遵循资源隔离原则，每个资源对应一个独立模块
 """
 
-from app.crud.user import (
+from crud.user import (
     create_user,
     get_user_by_id,
     get_user_by_username,
@@ -15,7 +15,7 @@ from app.crud.user import (
     get_user_roles
 )
 
-from app.crud.role import (
+from crud.role import (
     get_role_by_id,
     get_role_by_name,
     get_all_roles

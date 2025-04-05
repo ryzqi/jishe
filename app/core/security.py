@@ -8,11 +8,11 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.db.database import CurrentSession
-from app.schemas.token import TokenPayload
-from app.crud.user import get_user_by_id, get_user_roles
-from app.models.user import User
+from core.config import settings
+from db.database import CurrentSession
+from schemas.token import TokenPayload
+from crud.user import get_user_by_id, get_user_roles
+from models.user import User
 
 # 定义密码哈希上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

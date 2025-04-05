@@ -4,11 +4,11 @@ from sqlalchemy import select, func, and_, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 
-from app.models import User
-from app.models.patrol import Patrol
-from app.models.drone import Drone
-from app.models.error import Error
-from app.schemas.patrol import PatrolInfo, RoadConditionInfo, StatusSummaryResponse, ErrorUpdateResponse
+from models import User
+from models.patrol import Patrol
+from models.drone import Drone
+from models.error import Error
+from schemas.patrol import PatrolInfo, RoadConditionInfo, StatusSummaryResponse, ErrorUpdateResponse
 from loguru import logger
 
 

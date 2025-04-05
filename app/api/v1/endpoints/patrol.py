@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 
-from app.db.database import CurrentSession
-from app.crud.patrol import get_patrol_list, get_road_conditions, get_status_summary, get_all_errors_with_user_info
-from app.schemas.patrol import PatrolListResponse, RoadConditionResponse, StatusSummaryResponse, ErrorUpdateResponse
-from app.core.security import get_current_user
+from db.database import CurrentSession
+from crud.patrol import get_patrol_list, get_road_conditions, get_status_summary, get_all_errors_with_user_info
+from schemas.patrol import PatrolListResponse, RoadConditionResponse, StatusSummaryResponse, ErrorUpdateResponse
+from core.security import get_current_user
 
 
 router = APIRouter()

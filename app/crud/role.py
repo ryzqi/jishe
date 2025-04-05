@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.role import Role
+from models.role import Role
 
 
 async def get_role_by_id(db: AsyncSession, role_id: int) -> Optional[Role]:

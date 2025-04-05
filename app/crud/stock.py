@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
-from app.models.stock import Stock
-from app.schemas.stock import StockCreate, StockUpdate, StockStatisticsResponse
-from app.models.goods import Goods
+from models.stock import Stock
+from schemas.stock import StockCreate, StockUpdate, StockStatisticsResponse
+from models.goods import Goods
 
 
 async def create_stock(db: AsyncSession, stock: StockCreate) -> Stock:

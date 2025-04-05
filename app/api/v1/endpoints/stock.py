@@ -2,15 +2,15 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 
-from app.db.database import CurrentSession
-from app.service.warehouse_service import get_warehouse_stock_statistics
-from app.schemas.stock import (
+from db.database import CurrentSession
+from service.warehouse_service import get_warehouse_stock_statistics
+from schemas.stock import (
     StockCreate,
     StockUpdate,
     StockResponse,
     StockStatisticsResponse
 )
-from app.crud.stock import (
+from crud.stock import (
     create_stock,
     get_stock,
     get_stocks_by_warehouse,
@@ -18,8 +18,8 @@ from app.crud.stock import (
     delete_stock,
     get_stock_statistics_by_warehouse
 )
-from app.core.security import get_current_user
-from app.models.user import User
+from core.security import get_current_user
+from models.user import User
 
 
 router = APIRouter()

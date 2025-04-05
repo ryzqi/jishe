@@ -4,25 +4,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import (
+from core.security import (
     get_current_user,
     get_super_admin_user,
     get_transport_admin_user,
     get_warehouse_admin_user,
     get_any_admin_user
 )
-from app.crud.user import (
+from crud.user import (
     create_user,
     get_user_by_id,
     update_user,
     delete_user,
     get_user_roles
 )
-from app.crud.role import get_all_roles
-from app.db.database import CurrentSession
-from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
-from app.schemas.role import RoleResponse
+from crud.role import get_all_roles
+from db.database import CurrentSession
+from models.user import User
+from schemas.user import UserCreate, UserResponse, UserUpdate
+from schemas.role import RoleResponse
 
 
 router = APIRouter()

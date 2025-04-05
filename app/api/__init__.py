@@ -6,7 +6,7 @@ API路由模块
 
 from fastapi import APIRouter
 
-from app.api.v1 import api_router as api_v1_router
+from api.v1 import api_router as api_v1_router
 
 # 创建主API路由
 api_router = APIRouter()

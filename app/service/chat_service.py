@@ -1,5 +1,5 @@
 from autogen_agentchat.messages import TextMessage
-from app.schemas.chat import ChatMessage
+from schemas.chat import ChatMessage
 from autogen_core import CancellationToken
 import json
 from typing import AsyncGenerator
@@ -7,7 +7,7 @@ from autogen_agentchat.messages import ChatMessage
 import asyncio
 from typing import Dict
 from autogen_agentchat.agents import AssistantAgent
-from app.service.gaode import (
+from service.gaode import (
     geocode_and_extract_locations,
     get_amap_driving_directions,
 )
@@ -19,9 +19,9 @@ from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 from google import genai
 from google.genai import types
-from app.core.config import settings
-from app.service.db_service import query_database
-from app.service.db_service import query_database
+from core.config import settings
+from service.db_service import query_database
+from service.db_service import query_database
 
 
 class GeminiAssistantAgent(BaseChatAgent):

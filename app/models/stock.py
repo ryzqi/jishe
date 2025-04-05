@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, ForeignKey, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from db.base import Base
 
 
 class Stock(Base):

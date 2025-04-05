@@ -9,7 +9,7 @@ from loguru import logger
 from typing import Annotated, AsyncGenerator
 import sys
 import asyncio
-from app.core.config import settings
+from core.config import settings
 
 
 def create_engine_and_session(url: str | URL):
