@@ -297,6 +297,42 @@ ALTER SEQUENCE jishe.role_role_id_seq OWNED BY jishe.role.role_id;
 
 
 --
+-- Name: rooms; Type: TABLE; Schema: jishe; Owner: postgres
+--
+
+CREATE TABLE jishe.rooms (
+    id integer NOT NULL,
+    name character varying(255) NOT NULL,
+    status character varying(255) NOT NULL,
+    num integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE jishe.rooms OWNER TO postgres;
+
+--
+-- Name: rooms_id_seq; Type: SEQUENCE; Schema: jishe; Owner: postgres
+--
+
+CREATE SEQUENCE jishe.rooms_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE jishe.rooms_id_seq OWNER TO postgres;
+
+--
+-- Name: rooms_id_seq; Type: SEQUENCE OWNED BY; Schema: jishe; Owner: postgres
+--
+
+ALTER SEQUENCE jishe.rooms_id_seq OWNED BY jishe.rooms.id;
+
+
+--
 -- Name: stock; Type: TABLE; Schema: jishe; Owner: postgres
 --
 
@@ -339,6 +375,54 @@ ALTER SEQUENCE jishe.stock_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE jishe.stock_id_seq OWNED BY jishe.stock.id;
+
+
+--
+-- Name: stream_config; Type: TABLE; Schema: jishe; Owner: postgres
+--
+
+CREATE TABLE jishe.stream_config (
+    id integer NOT NULL,
+    stream_url character varying(512) NOT NULL
+);
+
+
+ALTER TABLE jishe.stream_config OWNER TO postgres;
+
+--
+-- Name: TABLE stream_config; Type: COMMENT; Schema: jishe; Owner: postgres
+--
+
+COMMENT ON TABLE jishe.stream_config IS '存储视频流URL配置表';
+
+
+--
+-- Name: COLUMN stream_config.stream_url; Type: COMMENT; Schema: jishe; Owner: postgres
+--
+
+COMMENT ON COLUMN jishe.stream_config.stream_url IS '视频流URL地址';
+
+
+--
+-- Name: stream_config_id_seq; Type: SEQUENCE; Schema: jishe; Owner: postgres
+--
+
+CREATE SEQUENCE jishe.stream_config_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE jishe.stream_config_id_seq OWNER TO postgres;
+
+--
+-- Name: stream_config_id_seq; Type: SEQUENCE OWNED BY; Schema: jishe; Owner: postgres
+--
+
+ALTER SEQUENCE jishe.stream_config_id_seq OWNED BY jishe.stream_config.id;
 
 
 --
@@ -570,10 +654,24 @@ ALTER TABLE ONLY jishe.role ALTER COLUMN role_id SET DEFAULT nextval('jishe.role
 
 
 --
+-- Name: rooms id; Type: DEFAULT; Schema: jishe; Owner: postgres
+--
+
+ALTER TABLE ONLY jishe.rooms ALTER COLUMN id SET DEFAULT nextval('jishe.rooms_id_seq'::regclass);
+
+
+--
 -- Name: stock id; Type: DEFAULT; Schema: jishe; Owner: postgres
 --
 
 ALTER TABLE ONLY jishe.stock ALTER COLUMN id SET DEFAULT nextval('jishe.stock_id_seq'::regclass);
+
+
+--
+-- Name: stream_config id; Type: DEFAULT; Schema: jishe; Owner: postgres
+--
+
+ALTER TABLE ONLY jishe.stream_config ALTER COLUMN id SET DEFAULT nextval('jishe.stream_config_id_seq'::regclass);
 
 
 --
@@ -689,6 +787,20 @@ COPY jishe.role (role_id, role_name) FROM stdin;
 
 
 --
+-- Data for Name: rooms; Type: TABLE DATA; Schema: jishe; Owner: postgres
+--
+
+COPY jishe.rooms (id, name, status, num) FROM stdin;
+1	wood	空闲	4181
+2	iron	满载	7203
+3	aluminum	正常	8970
+4	glass	正常	9000
+5	copper	维修	1234
+6	steel	空闲	5678
+\.
+
+
+--
 -- Data for Name: stock; Type: TABLE DATA; Schema: jishe; Owner: postgres
 --
 
@@ -740,6 +852,15 @@ COPY jishe.stock (id, warehouse_id, goods_id, all_count, last_add_count, last_ad
 46	3	8	490	46	2025-03-11 13:15:00
 47	3	9	310	30	2025-03-10 16:40:00
 48	3	10	550	58	2025-03-09 10:50:00
+\.
+
+
+--
+-- Data for Name: stream_config; Type: TABLE DATA; Schema: jishe; Owner: postgres
+--
+
+COPY jishe.stream_config (id, stream_url) FROM stdin;
+3	http://192.168.43.1:8080
 \.
 
 
@@ -834,10 +955,24 @@ SELECT pg_catalog.setval('jishe.role_role_id_seq', 1, false);
 
 
 --
+-- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: jishe; Owner: postgres
+--
+
+SELECT pg_catalog.setval('jishe.rooms_id_seq', 6, true);
+
+
+--
 -- Name: stock_id_seq; Type: SEQUENCE SET; Schema: jishe; Owner: postgres
 --
 
 SELECT pg_catalog.setval('jishe.stock_id_seq', 48, true);
+
+
+--
+-- Name: stream_config_id_seq; Type: SEQUENCE SET; Schema: jishe; Owner: postgres
+--
+
+SELECT pg_catalog.setval('jishe.stream_config_id_seq', 3, true);
 
 
 --
@@ -903,11 +1038,27 @@ ALTER TABLE ONLY jishe.role
 
 
 --
+-- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: jishe; Owner: postgres
+--
+
+ALTER TABLE ONLY jishe.rooms
+    ADD CONSTRAINT rooms_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: stock stock_pkey; Type: CONSTRAINT; Schema: jishe; Owner: postgres
 --
 
 ALTER TABLE ONLY jishe.stock
     ADD CONSTRAINT stock_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stream_config stream_config_pkey; Type: CONSTRAINT; Schema: jishe; Owner: postgres
+--
+
+ALTER TABLE ONLY jishe.stream_config
+    ADD CONSTRAINT stream_config_pkey PRIMARY KEY (id);
 
 
 --

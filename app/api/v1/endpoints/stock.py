@@ -1,7 +1,7 @@
 from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-
+from sqlalchemy import select, delete
 from db.database import CurrentSession
 from service.warehouse_service import get_warehouse_stock_statistics
 from schemas.stock import (
@@ -10,6 +10,7 @@ from schemas.stock import (
     StockResponse,
     StockStatisticsResponse
 )
+from schemas import RoomsResponse, StreamUrlRequest
 from crud.stock import (
     create_stock,
     get_stock,
@@ -20,6 +21,8 @@ from crud.stock import (
 )
 from core.security import get_current_user
 from models.user import User
+from models import Rooms
+from models import StreamConfig
 
 
 router = APIRouter()
@@ -113,9 +116,9 @@ router = APIRouter()
 
 @router.get("/warehouse/{warehouse_id}/statistics", summary="获取仓库库存统计")
 async def get_warehouse_statistics(
-    warehouse_id: int,
-    db: CurrentSession,
-    user: str = Depends(get_current_user)
+        warehouse_id: int,
+        db: CurrentSession,
+        user: str = Depends(get_current_user)
 ) -> Dict[str, List]:
     """
     获取指定仓库的库存统计信息
@@ -126,12 +129,12 @@ async def get_warehouse_statistics(
     try:
         # 获取统计信息
         statistics = await get_warehouse_stock_statistics(db, warehouse_id)
-        
+
         # 限制每个列表的数据数量不超过5个
         if statistics["yAxisData"] and len(statistics["yAxisData"]) > 5:
             statistics["yAxisData"] = statistics["yAxisData"][:5]
             statistics["seriesData"] = statistics["seriesData"][:5]
-            
+
         return statistics
     except Exception as e:
         logger.error(f"获取仓库统计信息失败: {str(e)}")
@@ -141,11 +144,12 @@ async def get_warehouse_statistics(
         )
 
 
-@router.get("/warehouse/{warehouse_id}/goods-statistics", response_model=StockStatisticsResponse, summary="获取仓库货物统计")
+@router.get("/warehouse/{warehouse_id}/goods-statistics", response_model=StockStatisticsResponse,
+            summary="获取仓库货物统计")
 async def get_warehouse_goods_statistics(
-    warehouse_id: int,
-    db: CurrentSession,
-    user: str = Depends(get_current_user)
+        warehouse_id: int,
+        db: CurrentSession,
+        user: str = Depends(get_current_user)
 ) -> StockStatisticsResponse:
     """
     获取指定仓库的货物统计信息
@@ -160,13 +164,13 @@ async def get_warehouse_goods_statistics(
     """
     try:
         statistics = await get_stock_statistics_by_warehouse(db, warehouse_id)
-        
+
         # 限制每个列表的数据数量不超过5个
         if len(statistics.categories) > 5:
             statistics.categories = statistics.categories[:5]
             statistics.existingData = statistics.existingData[:5]
             statistics.newData = statistics.newData[:5]
-            
+
         return statistics
     except Exception as e:
         logger.error(f"获取仓库货物统计信息失败: {str(e)}")
@@ -175,3 +179,39 @@ async def get_warehouse_goods_statistics(
             detail="获取仓库货物统计信息失败"
         )
 
+
+@router.get("/rooms", summary="获取仓库平面图数据", response_model=List[RoomsResponse])
+async def get_rooms(
+        db: CurrentSession,
+        user: str = Depends(get_current_user)
+) -> List[RoomsResponse]:
+    result = await db.execute(select(Rooms))  # 使用异步查询方式
+    rooms = result.scalars().all()
+    return rooms
+
+
+@router.get("/url", summary="获取实时视频的url")
+async def get_url(
+        db: CurrentSession,
+        user: str = Depends(get_current_user)
+):
+    result = await db.execute(select(StreamConfig))  # 使用异步查询方式
+    url = result.scalars().all()
+    return url
+
+
+@router.post("/url", summary="修改实时视频的url")
+async def post_url(
+    db: CurrentSession,
+    stream_url_request: StreamUrlRequest
+):
+    # Step 1: 删除数据库中所有的 StreamConfig 数据
+    await db.execute(delete(StreamConfig))  # 使用 delete 来删除 StreamConfig 表的所有数据
+    await db.commit()  # 提交事务以应用删除操作
+
+    # Step 2: 插入新的 stream_url
+    new_stream_config = StreamConfig(stream_url=stream_url_request.stream_url)
+    db.add(new_stream_config)
+    await db.commit()  # 提交事务以保存新的数据
+
+    return {"message": "Stream URL updated successfully"}

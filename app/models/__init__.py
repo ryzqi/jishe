@@ -8,6 +8,8 @@ from models.warehouse import Warehouse
 from models.stock import Stock
 from models.user import User
 from models.user_role import UserRole
+from models.rooms import Rooms
+from models.stream_config import StreamConfig
 
 __all__ = [
     "Drone",
@@ -18,5 +20,7 @@ __all__ = [
     "Warehouse",
     "Stock",
     "User",
-    "UserRole"
-] 
+    "UserRole",
+    "Rooms",
+    "StreamConfig"
+]

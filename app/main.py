@@ -8,7 +8,7 @@ from core.context import app_lifespan_context
 from api import api_router
 
 # 配置日志系统
-logger.remove()  
+logger.remove()
 logger.add(
     sys.stderr,
     format=settings.LOG_FORMAT,
@@ -40,7 +40,8 @@ if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
         # allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://localhost", "http://localhost:8000"],
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://localhost",
+                       "http://localhost:8000", "http://127.0.0.1:8080"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -65,10 +66,11 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "main:app",
+        app,
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.DEBUG,
+        reload=False,  # 👈 reload 必须关掉！
         log_level=settings.LOG_LEVEL.lower(),
-    ) 
+    )
