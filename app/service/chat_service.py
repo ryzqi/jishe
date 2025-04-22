@@ -30,13 +30,13 @@ class GeminiAssistantAgent(BaseChatAgent):
     """
 
     def __init__(
-        self,
-        name: str,
-        description: str = "An agent that provides assistance with ability to use tools.",
-        model: str = "gemini-2.5-flash-preview-04-17",
-        api_key: str = settings.GEMINI_API_KEY,
-        system_message: str
-        | None = "You are a helpful assistant that can respond to messages. Reply with TERMINATE when the task has been completed.",
+            self,
+            name: str,
+            description: str = "An agent that provides assistance with ability to use tools.",
+            model: str = "gemini-2.5-flash-preview-04-17",
+            api_key: str = settings.GEMINI_API_KEY,
+            system_message: str
+                            | None = "You are a helpful assistant that can respond to messages. Reply with TERMINATE when the task has been completed.",
     ):
         """
         初始化 GeminiAssistantAgent。
@@ -53,7 +53,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         )  # 初始化模型上下文，用于存储对话历史
         self._model_client = genai.Client(
             api_key=api_key
-        )  
+        )
         self._system_message = system_message  # 保存系统消息，作为助手的初始指令
         self._model = model  # 保存模型名称
         self._tools = [
@@ -72,7 +72,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         return (TextMessage,)  # 代理只产生文本消息
 
     async def on_messages(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+            self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> Response:
         """
         处理接收到的消息并返回响应。
@@ -85,7 +85,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         """
         final_response = None  # 初始化最终响应变量
         async for message in self.on_messages_stream(
-            messages, cancellation_token
+                messages, cancellation_token
         ):  # 遍历流式响应
             if isinstance(message, Response):  # 如果消息是 Response 类型
                 final_response = message  # 保存最终响应
@@ -98,7 +98,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         return final_response  # 返回最终响应
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+            self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         以流式方式处理消息并生成响应。
@@ -205,7 +205,7 @@ async def get_agent(user_id: str) -> AssistantAgent:
                             *   **`jishe.warehouse` (仓库信息):**
                                 *   `id` (INT, PK): 仓库唯一标识
                                 *   `warehouse_name` (VARCHAR): 仓库名称
-                                *   `states` (VARCHAR): 仓库状态
+                                *   `states` (VARCHAR): 仓库状态 (例如: '正常', '异常情况')
                             *   **`jishe.goods` (货物种类):**
                                 *   `id` (INT, PK): 货物种类唯一标识
                                 *   `goods_name` (VARCHAR): 货物种类名称
@@ -213,24 +213,28 @@ async def get_agent(user_id: str) -> AssistantAgent:
                                 *   `id` (INT, PK): 库存记录唯一标识
                                 *   `warehouse_id` (INT, FK -> `jishe.warehouse.id`): 仓库标识
                                 *   `goods_id` (INT, FK -> `jishe.goods.id`): 货物种类标识
-                                *   `all_count` (INT): 当前总库存量
-                                *   `last_add_count` (INT): 最近一次新增数量
-                                *   `last_add_date` (DATETIME): 最近一次新增时间
+                                *   `all_count` (INT, DEFAULT 0): 当前总库存量 (默认为 0)
+                                *   `last_add_count` (INT, DEFAULT 0): 最近一次新增数量 (默认为 0)
+                                *   `last_add_date` (TIMESTAMP without time zone): 最近一次新增时间
                             *   **`jishe.drone` (无人机信息):**
                                 *   `id` (INT, PK): 无人机编号
                                 *   `drone_type` (VARCHAR): 机型
-                                *   `states` (VARCHAR): 无人机状态 ('1' -> 正常工作, '0' -> 未工作)
+                                *   `states` (VARCHAR(1), CHECK): 无人机状态 ('1' -> 正常工作, '0' -> 未工作)
                             *   **`jishe.patrol` (巡查记录):**
                                 *   `id` (INT, PK): 巡查记录唯一标识
                                 *   `drone_id` (INT, FK -> `jishe.drone.id`): 执行任务的无人机编号
                                 *   `address` (VARCHAR): 巡查路段描述
-                                *   `predict_fly_time` (TIME): 预计飞行时长
-                                *   `fly_start_datetime` (DATETIME): 实际开始飞行时间
+                                *   `predict_fly_time` (TIME without time zone): 预计飞行时长
+                                *   `fly_start_datetime` (TIMESTAMP without time zone): 实际开始飞行时间
+                                *   `update_time` (TIMESTAMP without time zone, DEFAULT CURRENT_TIMESTAMP): 记录更新时间 (默认为当前时间)
+                                *   `error_id` (INT, FK -> `jishe.error.error_id`, 可为空): 关联的问题记录编号 (如果巡查中发现问题)
                             *   **`jishe.error` (错误/问题记录):**
                                 *   `error_id` (INT, PK): 问题编号
+                                *   `title` (VARCHAR, DEFAULT ''): 问题标题 (默认为空字符串)
                                 *   `error_content` (TEXT): 问题内容描述
-                                *   `error_found_time` (DATETIME): 问题发现时间
-                                *   `states` (VARCHAR): 问题状态 ('0' -> 待解决, '1' -> 正在解决)
+                                *   `error_found_time` (TIMESTAMP without time zone): 问题发现时间
+                                *   `states` (VARCHAR(1), CHECK): 问题状态 ('0' -> 待解决, '1' -> 正在解决)
+                                *   `user_id` (INT, FK -> `jishe.user.id`, 可为空): 关联的用户ID (注意：`jishe.user` 表禁止查询)
                         *   **利用外键进行连接查询 (JOIN):** 当需要跨表获取信息时（例如，查询特定仓库名称下的所有货物库存量），可以使用 JOIN 操作。例如: `SELECT w.warehouse_name, g.goods_name, s.all_count FROM jishe.stock s JOIN jishe.warehouse w ON s.warehouse_id = w.id JOIN jishe.goods g ON s.goods_id = g.id WHERE w.warehouse_name = '主仓库';`
                         *   **严禁查询的表：** `user`, `user_role`, `role`。任何尝试查询这些表的请求都将被拒绝。
                         *   确保 SQL 语法正确，并尽量只查询需要的列 (`SELECT column1, column2...`) 而不是 `SELECT *`，以提高效率。
@@ -269,7 +273,7 @@ async def chat(message: ChatMessage, user_id: str) -> AsyncGenerator[str, None]:
 
     # 使用历史记录创建流式响应
     async for msg in gemini_assistant.on_messages_stream(
-        [user_message], cancellation_token=CancellationToken()
+            [user_message], cancellation_token=CancellationToken()
     ):
         # 解析消息内容
         try:
