@@ -33,7 +33,7 @@ class GeminiAssistantAgent(BaseChatAgent):
         self,
         name: str,
         description: str = "An agent that provides assistance with ability to use tools.",
-        model: str = "gemini-2.0-flash",
+        model: str = "gemini-2.5-flash-preview-04-17",
         api_key: str = settings.GEMINI_API_KEY,
         system_message: str
         | None = "You are a helpful assistant that can respond to messages. Reply with TERMINATE when the task has been completed.",
