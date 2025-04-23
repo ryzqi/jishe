@@ -7,9 +7,10 @@ from pydantic import BaseModel, Field, field_validator
 class ErrorBase(BaseModel):
     """问题基础模型"""
     error_content: str = Field(..., description="问题内容")
-    error_found_time: datetime = Field(..., description="问题发现时间")
+    error_found_time: Optional[datetime] = None  # 👈 改成 Optional
     states: str = Field(..., description="问题状态: 0->待解决, 1->正在解决", min_length=1, max_length=1)
-    
+    user_id: Optional[int]
+    title: str
     @field_validator("states")
     @classmethod
     def validate_states(cls, v):
@@ -28,7 +29,9 @@ class ErrorUpdate(BaseModel):
     error_content: Optional[str] = Field(None, description="问题内容")
     error_found_time: Optional[datetime] = Field(None, description="问题发现时间")
     states: Optional[str] = Field(None, description="问题状态: 0->待解决, 1->正在解决", min_length=1, max_length=1)
-    
+    title: Optional[str]
+    user_id: Optional[int]
+
     @field_validator("states")
     @classmethod
     def validate_states(cls, v):

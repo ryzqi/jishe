@@ -23,7 +23,7 @@ class Error(Base):
     
     # 重命名主键，以匹配数据库
     id = None  # 移除基类中的id
-    error_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    error_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     error_content: Mapped[str] = mapped_column(Text, nullable=False)
     error_found_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     states: Mapped[str] = mapped_column(String(1), nullable=False)
@@ -38,12 +38,3 @@ class Error(Base):
     @declared_attr.directive
     def created_at(cls) -> Mapped[datetime]:
         return mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-        
-    @declared_attr.directive
-    def updated_at(cls) -> Mapped[datetime]:
-        return mapped_column(
-            DateTime(timezone=True), 
-            server_default=func.now(), 
-            onupdate=func.now(), 
-            nullable=False
-        ) 
