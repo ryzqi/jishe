@@ -17,7 +17,8 @@ from crud.stock import (
     get_stocks_by_warehouse,
     update_stock,
     delete_stock,
-    get_stock_statistics_by_warehouse
+    get_stock_statistics_by_warehouse,
+    check_stock_exists
 )
 from core.security import get_current_user
 from models.user import User
@@ -28,90 +29,139 @@ from models import StreamConfig
 router = APIRouter()
 
 
-# @router.post("/", response_model=StockResponse, status_code=status.HTTP_201_CREATED, summary="创建库存记录")
-# async def create_stock_endpoint(
-#     db: CurrentSession,
-#     stock: StockCreate,
-#     user: str = Depends(get_current_user)
-# ):
-#     """创建库存记录"""
-#     try:
-#         return await create_stock(db, stock)
-#     except Exception as e:
-#         logger.error(f"创建库存记录失败: {str(e)}")
-#         raise HTTPException(status_code=500, detail="创建库存记录失败")
-#
-#
-# @router.get("/{stock_id}", response_model=StockResponse, summary="获取指定库存记录")
-# async def get_stock_endpoint(
-#     db: CurrentSession,
-#     stock_id: int,
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """获取指定库存记录"""
-#     try:
-#         stock = await get_stock(db, stock_id)
-#         if not stock:
-#             raise HTTPException(status_code=404, detail="库存记录不存在")
-#         return stock
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"获取库存记录失败: {str(e)}")
-#         raise HTTPException(status_code=500, detail="获取库存记录失败")
-#
-#
-# @router.get("/warehouse/{warehouse_id}", response_model=List[StockResponse], summary="获取仓库库存记录")
-# async def get_warehouse_stocks_endpoint(
-#     db: CurrentSession,
-#     warehouse_id: int,
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """获取指定仓库的所有库存记录"""
-#     try:
-#         return await get_stocks_by_warehouse(db, warehouse_id)
-#     except Exception as e:
-#         logger.error(f"获取仓库库存记录失败: {str(e)}")
-#         raise HTTPException(status_code=500, detail="获取仓库库存记录失败")
-#
-#
-# @router.put("/{stock_id}", response_model=StockResponse, summary="更新库存记录")
-# async def update_stock_endpoint(
-#     db: CurrentSession,
-#     stock_id: int,
-#     stock: StockUpdate,
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """更新库存记录"""
-#     try:
-#         updated_stock = await update_stock(db, stock_id, stock)
-#         if not updated_stock:
-#             raise HTTPException(status_code=404, detail="库存记录不存在")
-#         return updated_stock
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"更新库存记录失败: {str(e)}")
-#         raise HTTPException(status_code=500, detail="更新库存记录失败")
-#
-#
-# @router.delete("/{stock_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除库存记录")
-# async def delete_stock_endpoint(
-#     db: CurrentSession,
-#     stock_id: int,
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """删除库存记录"""
-#     try:
-#         success = await delete_stock(db, stock_id)
-#         if not success:
-#             raise HTTPException(status_code=404, detail="库存记录不存在")
-#         return None
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"删除库存记录失败: {str(e)}")
-#         raise HTTPException(status_code=500, detail="删除库存记录失败")
+@router.post("/stock", response_model=StockResponse, status_code=status.HTTP_201_CREATED, summary="创建库存")
+async def create_stock_endpoint(
+    stock_data: StockCreate,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> StockResponse:
+    """
+    创建新的库存记录
+    
+    - **warehouse_id**: 仓库ID
+    - **goods_id**: 商品ID
+    - **all_count**: 总库存量
+    - **last_add_count**: 新增库存量
+    - **user**: 当前登录用户
+    """
+    try:
+        new_stock = await create_stock(db, stock_data)
+        return new_stock
+    except Exception as e:
+        logger.error(f"创建库存失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"创建库存失败: {str(e)}"
+        )
+
+
+@router.put("/stock/{stock_id}", response_model=StockResponse, summary="更新库存")
+async def update_stock_endpoint(
+    stock_id: int,
+    stock_data: StockUpdate,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> StockResponse:
+    """
+    更新指定ID的库存记录
+    
+    - **stock_id**: 库存ID
+    - **stock_data**: 更新的库存数据，推荐只提供last_add_count字段
+      - last_add_count: 新增库存量（可以为负数表示减少库存）
+    - **user**: 当前登录用户
+    
+    注意：
+    - 如果提供了last_add_count，系统会自动计算新的总库存量(all_count = 原all_count + last_add_count)
+    - 如果计算后的all_count小于0，将被设置为0
+    """
+    try:
+        updated_stock = await update_stock(db, stock_id, stock_data)
+        if not updated_stock:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"库存ID {stock_id} 不存在"
+            )
+        return updated_stock
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新库存失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"更新库存失败: {str(e)}"
+        )
+
+
+@router.put("/warehouse/{warehouse_id}/goods/{goods_id}/stock", response_model=StockResponse, summary="根据仓库ID和商品ID更新库存")
+async def update_stock_by_warehouse_goods_endpoint(
+    warehouse_id: int,
+    goods_id: int,
+    stock_data: StockUpdate,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> StockResponse:
+    """
+    根据仓库ID和商品ID更新库存记录
+    
+    - **warehouse_id**: 仓库ID
+    - **goods_id**: 商品ID
+    - **stock_data**: 更新的库存数据，推荐只提供last_add_count字段
+      - last_add_count: 新增库存量（可以为负数表示减少库存）
+    - **user**: 当前登录用户
+    
+    注意：
+    - 如果提供了last_add_count，系统会自动计算新的总库存量(all_count = 原all_count + last_add_count)
+    - 如果计算后的all_count小于0，将被设置为0
+    """
+    try:
+        # 查找库存记录
+        existing_stock = await check_stock_exists(db, warehouse_id, goods_id)
+        if not existing_stock:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"仓库ID {warehouse_id} 和商品ID {goods_id} 的库存记录不存在"
+            )
+        
+        # 更新库存记录
+        updated_stock = await update_stock(db, existing_stock.id, stock_data)
+        return updated_stock
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新库存失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"更新库存失败: {str(e)}"
+        )
+
+
+@router.delete("/stock/{stock_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除库存")
+async def delete_stock_endpoint(
+    stock_id: int,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+):
+    """
+    删除指定ID的库存记录
+    
+    - **stock_id**: 库存ID
+    - **user**: 当前登录用户
+    """
+    try:
+        deleted = await delete_stock(db, stock_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"库存ID {stock_id} 不存在"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"删除库存失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"删除库存失败: {str(e)}"
+        )
 
 
 @router.get("/warehouse/{warehouse_id}/statistics", summary="获取仓库库存统计")
@@ -177,6 +227,91 @@ async def get_warehouse_goods_statistics(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取仓库货物统计信息失败"
+        )
+
+
+@router.get("/stock/{stock_id}", response_model=StockResponse, summary="获取单个库存")
+async def get_stock_endpoint(
+    stock_id: int,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> StockResponse:
+    """
+    获取指定ID的库存详细信息
+    
+    - **stock_id**: 库存ID
+    - **user**: 当前登录用户
+    """
+    try:
+        stock = await get_stock(db, stock_id)
+        if not stock:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"库存ID {stock_id} 不存在"
+            )
+        return stock
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取库存详情失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取库存详情失败: {str(e)}"
+        )
+
+
+@router.get("/warehouse/{warehouse_id}/goods/{goods_id}/stock", response_model=StockResponse, summary="根据仓库ID和商品ID获取库存")
+async def get_stock_by_warehouse_goods_endpoint(
+    warehouse_id: int,
+    goods_id: int,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> StockResponse:
+    """
+    根据仓库ID和商品ID获取库存记录
+    
+    - **warehouse_id**: 仓库ID
+    - **goods_id**: 商品ID
+    - **user**: 当前登录用户
+    """
+    try:
+        stock = await check_stock_exists(db, warehouse_id, goods_id)
+        if not stock:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"仓库ID {warehouse_id} 和商品ID {goods_id} 的库存记录不存在"
+            )
+        return stock
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取库存详情失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取库存详情失败: {str(e)}"
+        )
+
+
+@router.get("/warehouse/{warehouse_id}/stocks", response_model=List[StockResponse], summary="获取仓库所有库存")
+async def get_warehouse_stocks(
+    warehouse_id: int,
+    db: CurrentSession,
+    user: str = Depends(get_current_user)
+) -> List[StockResponse]:
+    """
+    获取指定仓库的所有库存记录
+    
+    - **warehouse_id**: 仓库ID
+    - **user**: 当前登录用户
+    """
+    try:
+        stocks = await get_stocks_by_warehouse(db, warehouse_id)
+        return stocks
+    except Exception as e:
+        logger.error(f"获取仓库库存列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取仓库库存列表失败: {str(e)}"
         )
 
 

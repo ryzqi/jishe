@@ -4,10 +4,35 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
+from fastapi import HTTPException, status
 
 from models.stock import Stock
 from schemas.stock import StockCreate, StockUpdate, StockStatisticsResponse
 from models.goods import Goods
+
+
+async def check_stock_exists(db: AsyncSession, warehouse_id: int, goods_id: int) -> Optional[Stock]:
+    """
+    检查指定仓库和商品组合的库存记录是否已存在
+    
+    Args:
+        db: 数据库会话
+        warehouse_id: 仓库ID
+        goods_id: 商品ID
+        
+    Returns:
+        Stock: 存在的库存记录或None
+    """
+    try:
+        query = select(Stock).where(
+            Stock.warehouse_id == warehouse_id,
+            Stock.goods_id == goods_id
+        )
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+    except SQLAlchemyError as e:
+        logger.error(f"检查库存记录是否存在失败: {str(e)}")
+        raise
 
 
 async def create_stock(db: AsyncSession, stock: StockCreate) -> Stock:
@@ -20,19 +45,39 @@ async def create_stock(db: AsyncSession, stock: StockCreate) -> Stock:
         
     Returns:
         Stock: 创建的库存对象
+        
+    Raises:
+        HTTPException: 当仓库和商品组合已存在时抛出异常
     """
     try:
+        # 检查该仓库和商品组合是否已存在
+        existing_stock = await check_stock_exists(db, stock.warehouse_id, stock.goods_id)
+        if existing_stock:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"仓库ID {stock.warehouse_id} 和商品ID {stock.goods_id} 的库存记录已存在，请使用更新接口"
+            )
+        
+        # 使用当前时间作为last_add_date
+        current_time = datetime.now()
+        
         db_stock = Stock(
             warehouse_id=stock.warehouse_id,
             goods_id=stock.goods_id,
             all_count=stock.all_count,
             last_add_count=stock.last_add_count,
-            last_add_date=datetime.now()
+            last_add_date=current_time
         )
         db.add(db_stock)
         await db.commit()
         await db.refresh(db_stock)
+        
+        # 增加last_add_time字段以便与Schema匹配
+        setattr(db_stock, "last_add_time", db_stock.last_add_date)
+        
         return db_stock
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         logger.error(f"创建库存记录失败: {str(e)}")
         await db.rollback()
@@ -53,7 +98,10 @@ async def get_stock(db: AsyncSession, stock_id: int) -> Optional[Stock]:
     try:
         query = select(Stock).where(Stock.id == stock_id)
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+        stock = result.scalar_one_or_none()
+        
+            
+        return stock
     except SQLAlchemyError as e:
         logger.error(f"查询库存记录(ID:{stock_id})失败: {str(e)}")
         raise
@@ -73,7 +121,13 @@ async def get_stocks_by_warehouse(db: AsyncSession, warehouse_id: int) -> List[S
     try:
         query = select(Stock).where(Stock.warehouse_id == warehouse_id)
         result = await db.execute(query)
-        return list(result.scalars().all())
+        stocks = list(result.scalars().all())
+        
+        # 为每个库存记录设置last_add_time以便与Schema匹配
+        for stock in stocks:
+            setattr(stock, "last_add_time", stock.last_add_date)
+            
+        return stocks
     except SQLAlchemyError as e:
         logger.error(f"查询仓库(ID:{warehouse_id})的库存记录失败: {str(e)}")
         raise
@@ -96,11 +150,35 @@ async def update_stock(db: AsyncSession, stock_id: int, stock: StockUpdate) -> O
         if not db_stock:
             return None
         
-        for field, value in stock.dict(exclude_unset=True).items():
+        update_data = stock.dict(exclude_unset=True)
+        
+        # 检查是否提供了last_add_count，如果有则更新all_count
+        if "last_add_count" in update_data:
+            # 提取last_add_count值
+            last_add_count = update_data["last_add_count"]
+            
+            # 计算新的总库存量
+            new_all_count = db_stock.all_count + last_add_count
+            
+            # 确保total_count不小于0
+            if new_all_count < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="库存不足"
+                )
+            
+            # 更新all_count
+            update_data["all_count"] = new_all_count
+            
+            # 更新last_add_date
+            update_data["last_add_date"] = datetime.now()
+        
+        for field, value in update_data.items():
             setattr(db_stock, field, value)
         
         await db.commit()
         await db.refresh(db_stock)
+        
         return db_stock
     except SQLAlchemyError as e:
         logger.error(f"更新库存记录(ID:{stock_id})失败: {str(e)}")
