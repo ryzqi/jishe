@@ -12,12 +12,42 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """创建用户请求模型"""
     password: str = Field(..., description="用户密码", min_length=6)
+    name: Optional[str] = Field(None, description="用户姓名")
+    email: Optional[str] = Field(None, description="用户邮箱")
+    phone: Optional[str] = Field(None, description="用户电话号码")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "username": "new_user",
+                "password": "password123",
+                "name": "新用户",
+                "email": "user@example.com",
+                "phone": "13900000000"
+            }
+        }
+    }
 
 
 class UserUpdate(BaseModel):
     """更新用户请求模型"""
     username: Optional[str] = Field(None, description="用户名", min_length=3, max_length=50)
     password: Optional[str] = Field(None, description="用户密码", min_length=6)
+    name: Optional[str] = Field(None, description="用户姓名")
+    email: Optional[str] = Field(None, description="用户邮箱")
+    phone: Optional[str] = Field(None, description="用户电话号码")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "username": "updated_user",
+                "password": "newpassword123",
+                "name": "更新用户",
+                "email": "updated@example.com",
+                "phone": "13911111111"
+            }
+        }
+    }
 
 
 class UserResponse(UserBase):

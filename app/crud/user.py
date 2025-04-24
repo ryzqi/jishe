@@ -91,11 +91,17 @@ async def create_user(db: AsyncSession, user_create: UserCreate, role_ids: List[
             logger.warning(f"创建用户失败: 用户名'{user_create.username}'已存在")
             raise ValueError(f"Username '{user_create.username}' already exists")
             
+        # 创建用户数据
+        user_data = {
+            "username": user_create.username,
+            "password": get_password_hash(user_create.password),
+            "email": user_create.email or "default@example.com",
+            "name": user_create.name or user_create.username,
+            "phone": user_create.phone or "未设置"
+        }
+        
         # 创建用户
-        db_user = User(
-            username=user_create.username,
-            password=get_password_hash(user_create.password)
-        )
+        db_user = User(**user_data)
         db.add(db_user)
         await db.flush()  # 获取自动生成的ID
         

@@ -310,3 +310,151 @@ app/
 - **Warehouse - Stock**: 一对多（一个仓库可以有多个库存记录）
 - **Goods - Stock**: 一对多（一种货物可以在多个仓库有库存）
 - **User - Role**: 多对多（通过UserRole关联表）
+
+## 错误管理 API
+
+系统提供完整的错误管理API，用于创建、查询、更新和删除错误记录。
+
+### 获取错误列表及统计
+
+```http
+GET /api/v1/errors/error_update
+```
+
+**响应示例:**
+
+```json
+[
+  {
+    "id": 1,
+    "sender": "admin",
+    "title": "设备故障",
+    "content": "A区货架3号扫描设备故障",
+    "createTime": "2024-04-25 10:30:45",
+    "status": "待解决"
+  },
+  {
+    "id": 2,
+    "sender": "admin",
+    "title": "安全隐患",
+    "content": "B区通道积水",
+    "createTime": "2024-04-25 11:15:22",
+    "status": "正在解决"
+  }
+]
+```
+
+### 创建错误记录
+
+```http
+POST /api/v1/errors/error
+```
+
+**请求体:**
+
+```json
+{
+  "title": "设备故障",
+  "error_content": "A区货架3号扫描设备故障",
+  "states": "0",
+  "user_id": 1
+}
+```
+
+### 更新错误记录
+
+```http
+PUT /api/v1/errors/error/{error_id}
+```
+
+**请求体:**
+
+```json
+{
+  "error_content": "更新后的错误内容",
+  "states": "1"
+}
+```
+
+### 删除错误记录
+
+```http
+DELETE /api/v1/errors/error/{error_id}
+```
+
+### 获取错误详情
+
+```http
+GET /api/v1/errors/error/{error_id}
+```
+
+### 获取用户的所有错误
+
+```http
+GET /api/v1/errors/error/user/{user_id}
+```
+
+## 问题排查
+
+### 认证相关问题
+
+#### bcrypt 版本兼容性
+
+如果遇到以下错误：
+
+```
+error reading bcrypt version
+AttributeError: module 'bcrypt' has no attribute '__about__'
+```
+
+这是由于新版本的bcrypt (4.x+)与passlib的兼容性问题导致。系统已通过修补方式解决这个问题，如果仍然出现相关错误，请确认：
+
+1. 项目中的`app/core/password_patch.py`文件是否存在
+2. `app/core/password.py`中已正确应用补丁
+
+解决方法：
+- 确保系统使用了修补后的密码处理模块
+- 或者降级bcrypt到3.x版本：`pip install bcrypt==3.2.2`
+
+#### 用户创建失败问题
+
+如果创建用户时出现以下错误：
+
+```
+ResponseValidationError: validation errors:
+  - 'name' should be a valid string
+  - 'phone' should be a valid string
+```
+
+这是因为用户响应模型需要非空的姓名和电话号码字段。确保：
+
+1. 创建用户时提供了这些字段，或者
+2. 使用最新版本的代码，其中已添加了这些字段的默认值
+
+如果使用API创建用户，可以在请求中包含这些可选字段：
+
+```json
+{
+  "username": "new_user",
+  "password": "password123",
+  "name": "新用户姓名",
+  "email": "user@example.com",
+  "phone": "13900000000"
+}
+```
+
+#### 登录失败问题
+
+如果登录请求返回401未授权错误：
+
+1. 检查用户名和密码是否正确
+2. 确认数据库连接是否正常
+3. 查看日志文件中是否有相关错误信息
+
+#### 令牌验证问题
+
+如果令牌无法通过验证：
+
+1. 检查令牌是否过期
+2. 确认环境变量中的SECRET_KEY设置是否正确
+3. 查看时区设置，令牌生成和验证时间是否一致
