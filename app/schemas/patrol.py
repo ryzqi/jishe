@@ -83,6 +83,7 @@ class StatusSummaryResponse(BaseModel):
 class ErrorUpdateResponse(BaseModel):
     id: int
     sender: str
+    user_id: int
     title: str
     content: str
     createTime: str

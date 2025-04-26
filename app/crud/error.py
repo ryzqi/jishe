@@ -48,12 +48,13 @@ async def get_all_errors(db: AsyncSession) -> List[Dict[str, Any]]:
         query = """
         SELECT e.error_id AS id, 
                u.username AS sender, 
+               u.id AS user_id,
                e.title, 
                e.error_content AS content, 
                e.error_found_time::text AS "createTime",
                CASE 
-                   WHEN e.states = '0' THEN '待解决' 
-                   WHEN e.states = '1' THEN '正在解决' 
+                   WHEN e.states = '0' THEN '待处理' 
+                   WHEN e.states = '1' THEN '已处理' 
                    ELSE '未知状态' 
                END AS status
         FROM jishe.error e
