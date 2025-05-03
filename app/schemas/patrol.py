@@ -22,7 +22,7 @@ class PatrolUpdate(BaseModel):
     drone_id: Optional[int] = Field(None, description="无人机编号")
     address: Optional[str] = Field(None, description="在寻路段")
     predict_fly_time: Optional[time] = Field(None, description="预计飞行时长")
-    fly_start_datetime: Optional[datetime] = Field(None, description="开始飞行时间")
+    # fly_start_datetime: Optional[datetime] = Field(None, description="开始飞行时间")
 
 
 class PatrolResponse(PatrolBase):
@@ -51,6 +51,7 @@ class PatrolInfo(BaseModel):
     状态: str = Field(..., description="工作状态")
     预计续航时长: str = Field(..., description="预计续航时长")
     已工作时长: str = Field(..., description="已工作时长")
+    id: int = Field(..., description="巡查记录id")
 
 
 class PatrolListResponse(BaseModel):

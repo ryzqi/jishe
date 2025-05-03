@@ -164,9 +164,10 @@ async def delete_stock_endpoint(
         )
 
 
-@router.get("/warehouse/{warehouse_id}/statistics", summary="获取仓库库存统计")
+@router.get("/warehouse/{warehouse_id}/statistics/{count}", summary="获取仓库库存统计")
 async def get_warehouse_statistics(
         warehouse_id: int,
+        count: int,
         db: CurrentSession,
         user: str = Depends(get_current_user)
 ) -> Dict[str, List]:
@@ -181,9 +182,9 @@ async def get_warehouse_statistics(
         statistics = await get_warehouse_stock_statistics(db, warehouse_id)
 
         # 限制每个列表的数据数量不超过5个
-        if statistics["yAxisData"] and len(statistics["yAxisData"]) > 5:
-            statistics["yAxisData"] = statistics["yAxisData"][:5]
-            statistics["seriesData"] = statistics["seriesData"][:5]
+        if statistics["yAxisData"] and len(statistics["yAxisData"]) > count:
+            statistics["yAxisData"] = statistics["yAxisData"][:count]
+            statistics["seriesData"] = statistics["seriesData"][:count]
 
         return statistics
     except Exception as e:
@@ -194,10 +195,11 @@ async def get_warehouse_statistics(
         )
 
 
-@router.get("/warehouse/{warehouse_id}/goods-statistics", response_model=StockStatisticsResponse,
+@router.get("/warehouse/{warehouse_id}/goods-statistics/{count}", response_model=StockStatisticsResponse,
             summary="获取仓库货物统计")
 async def get_warehouse_goods_statistics(
         warehouse_id: int,
+        count: int,
         db: CurrentSession,
         user: str = Depends(get_current_user)
 ) -> StockStatisticsResponse:
@@ -216,10 +218,10 @@ async def get_warehouse_goods_statistics(
         statistics = await get_stock_statistics_by_warehouse(db, warehouse_id)
 
         # 限制每个列表的数据数量不超过5个
-        if len(statistics.categories) > 5:
-            statistics.categories = statistics.categories[:5]
-            statistics.existingData = statistics.existingData[:5]
-            statistics.newData = statistics.newData[:5]
+        if len(statistics.categories) > count:
+            statistics.categories = statistics.categories[:count]
+            statistics.existingData = statistics.existingData[:count]
+            statistics.newData = statistics.newData[:count]
 
         return statistics
     except Exception as e:
@@ -292,12 +294,12 @@ async def get_stock_by_warehouse_goods_endpoint(
         )
 
 
-@router.get("/warehouse/{warehouse_id}/stocks", response_model=List[StockResponse], summary="获取仓库所有库存")
+@router.get("/warehouse/{warehouse_id}/stocks", summary="获取仓库所有库存")
 async def get_warehouse_stocks(
     warehouse_id: int,
     db: CurrentSession,
     user: str = Depends(get_current_user)
-) -> List[StockResponse]:
+):
     """
     获取指定仓库的所有库存记录
     

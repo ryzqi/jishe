@@ -9,7 +9,7 @@ from models.user import User
 from models.user_role import UserRole
 from models.role import Role
 from core.password import verify_password, get_password_hash
-from schemas.user import UserCreate, UserUpdate
+from schemas.user import UserCreate, UserUpdate, UserResponse
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
@@ -72,14 +72,14 @@ async def get_user_roles(db: AsyncSession, user_id: int) -> List[Role]:
         raise
 
 
-async def create_user(db: AsyncSession, user_create: UserCreate, role_ids: List[int] = None) -> User:
+async def create_user(db: AsyncSession, user_create: UserCreate, role_id: int = 1) -> UserResponse:
     """
     创建新用户
     
     Args:
         db: 数据库会话
         user_create: 用户创建模型
-        role_ids: 角色ID列表
+        role_id: 角色ID
         
     Returns:
         User: 创建的用户
@@ -106,14 +106,14 @@ async def create_user(db: AsyncSession, user_create: UserCreate, role_ids: List[
         await db.flush()  # 获取自动生成的ID
         
         # 分配角色
-        if role_ids:
-            for role_id in role_ids:
-                user_role = UserRole(user_id=db_user.id, role_id=role_id)
-                db.add(user_role)
+
+        user_role = UserRole(user_id=db_user.id, role_id=role_id)
+        db.add(user_role)
         
         await db.commit()
         await db.refresh(db_user)
         logger.info(f"用户创建成功: {db_user.username} (ID: {db_user.id})")
+        setattr(db_user, 'role', role_id)
         return db_user
     except SQLAlchemyError as e:
         await db.rollback()
@@ -130,7 +130,7 @@ async def update_user(
     user_id: int, 
     user_update: UserUpdate, 
     role_ids: List[int] = None
-) -> Optional[User]:
+) -> Optional[UserResponse]:
     """
     更新用户
     
@@ -180,6 +180,7 @@ async def update_user(
         
         await db.commit()
         updated_user = await get_user_by_id(db, user_id)
+        setattr(updated_user, 'role', role_ids[0])
         logger.info(f"用户更新成功: {updated_user.username} (ID: {updated_user.id})")
         return updated_user
     except SQLAlchemyError as e:

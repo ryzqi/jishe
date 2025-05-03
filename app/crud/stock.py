@@ -107,7 +107,7 @@ async def get_stock(db: AsyncSession, stock_id: int) -> Optional[Stock]:
         raise
 
 
-async def get_stocks_by_warehouse(db: AsyncSession, warehouse_id: int) -> List[Stock]:
+async def get_stocks_by_warehouse(db: AsyncSession, warehouse_id: int):
     """
     获取指定仓库的所有库存记录
     
@@ -118,15 +118,28 @@ async def get_stocks_by_warehouse(db: AsyncSession, warehouse_id: int) -> List[S
     Returns:
         List[Stock]: 库存记录列表
     """
+    # 联表查询 Stock 和 Goods，返回两个表的所有字段
     try:
-        query = select(Stock).where(Stock.warehouse_id == warehouse_id)
+        query = (
+            select(Stock, Goods)
+            .join(Goods, Stock.goods_id == Goods.id)
+            .where(Stock.warehouse_id == warehouse_id)
+        )
         result = await db.execute(query)
-        stocks = list(result.scalars().all())
-        
-        # 为每个库存记录设置last_add_time以便与Schema匹配
-        for stock in stocks:
-            setattr(stock, "last_add_time", stock.last_add_date)
-            
+        rows = result.all()  # 每项是 (Stock, Goods) 的元组
+
+        stocks = []
+        for stock, goods in rows:
+            stock_data = {
+                "id": stock.id,
+                "goods_id": stock.goods_id,
+                "all_count": stock.all_count,
+                "last_add_count": stock.last_add_count,
+                "last_add_time": stock.last_add_date,  # 即原 last_add_time
+                "goods_name": goods.goods_name,
+            }
+            stocks.append(stock_data)
+
         return stocks
     except SQLAlchemyError as e:
         logger.error(f"查询仓库(ID:{warehouse_id})的库存记录失败: {str(e)}")
@@ -168,7 +181,7 @@ async def update_stock(db: AsyncSession, stock_id: int, stock: StockUpdate) -> O
                 )
             
             # 更新all_count
-            update_data["all_count"] = new_all_count
+            # update_data["all_count"] = new_all_count
             
             # 更新last_add_date
             update_data["last_add_date"] = datetime.now()

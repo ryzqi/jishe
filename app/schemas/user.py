@@ -52,7 +52,9 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     """用户响应模型"""
+    role: int = Field(..., description="角色编号")
     id: int = Field(..., description="用户唯一标识")
+    username: str = Field(..., description="用户·昵称")
     name: str = Field(..., description="用户姓名")
     email: str = Field(..., description="邮箱")
     phone: str = Field(..., description="用户电话号码")

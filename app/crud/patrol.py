@@ -39,7 +39,8 @@ async def get_patrol_list(db: AsyncSession) -> list[PatrolInfo]:
             Patrol.address,
             Drone.states,
             Patrol.predict_fly_time,
-            Patrol.fly_start_datetime
+            Patrol.fly_start_datetime,
+            Patrol.id
         )
         .join(Patrol, Patrol.drone_id == Drone.id)
     )
@@ -86,7 +87,8 @@ async def get_patrol_list(db: AsyncSession) -> list[PatrolInfo]:
             巡查路段=row.address,
             状态=state,
             预计续航时长=predict_time,
-            已工作时长=work_time
+            已工作时长=work_time,
+            id=row.id
         ))
 
     return patrols

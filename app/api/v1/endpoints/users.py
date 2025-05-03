@@ -18,7 +18,7 @@ from crud.user import (
     delete_user,
     get_user_roles
 )
-from crud.role import get_all_roles
+from crud.role import get_all_roles, get_role_by_id
 from db.database import CurrentSession
 from models.user import User
 from schemas.user import UserCreate, UserResponse, UserUpdate
@@ -76,16 +76,27 @@ async def read_users(
 
     result = await db.execute(query)
     users = result.mappings().all()  # 返回字典列表，如 [{"id": 1, "name": "张三", ...}]
-    return users
+    user_dicts = []
+    for user in users:
+        user_id = user.id
+        roles = await get_user_roles(db, user_id)
+        user_dict = dict(user)
+        if roles:
+            user_dict["role"] = roles[0].role_id
+        else:
+            user_dict["role"] = None  # 或者 "未分配"、空字符串等，视你的业务需要
+        user_dicts.append(user_dict)
+
+    return user_dicts
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="创建新用户")
 async def create_new_user(
     db: CurrentSession,
     user_in: UserCreate,
-    role_ids: List[int],
+    role_id: int,
     current_user: User = Depends(get_super_admin_user)
-) -> User:
+) -> UserResponse:
     """
     创建新用户（仅限超级管理员）
     
@@ -95,16 +106,15 @@ async def create_new_user(
     # 验证角色ID
     available_roles = await get_all_roles(db)
     available_role_ids = [role.role_id for role in available_roles]
-    
-    for role_id in role_ids:
-        if role_id not in available_role_ids:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Role with ID {role_id} not found"
-            )
+
+    if role_id not in available_role_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Role with ID {role_id} not found"
+        )
     
     # 创建用户
-    user = await create_user(db, user_in, role_ids)
+    user = await create_user(db, user_in, role_id)
     return user
 
 
@@ -135,7 +145,7 @@ async def update_user_endpoint(
     user_in: UserUpdate,
     current_user: User = Depends(get_super_admin_user),
     role_ids: Optional[List[int]] = None
-) -> User:
+) -> UserResponse:
     """
     更新用户信息（仅限超级管理员）
     
