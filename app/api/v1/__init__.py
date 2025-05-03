@@ -1,6 +1,15 @@
 from fastapi import APIRouter
 
-from api.v1.endpoints import auth_router, users_router, chat_router, stock_router, patrol_router, error_router, transport_router
+from api.v1.endpoints import (
+    auth_router,
+    users_router,
+    chat_router,
+    stock_router,
+    patrol_router,
+    error_router,
+    transport_router,
+    iodta_router
+)
 
 
 api_router = APIRouter()
@@ -25,3 +34,6 @@ api_router.include_router(error_router, prefix="/errors", tags=["错误管理"])
 
 # 添加运输管理路由
 api_router.include_router(transport_router, prefix="/transport", tags=["运输管理"])
+
+# 添加IODTA路由
+api_router.include_router(iodta_router, prefix="/iodta", tags=["IODTA"])
