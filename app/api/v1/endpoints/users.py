@@ -21,18 +21,18 @@ from crud.user import (
 from crud.role import get_all_roles, get_role_by_id
 from db.database import CurrentSession
 from models.user import User
-from schemas.user import UserCreate, UserResponse, UserUpdate
+from schemas.user import UserCreate, UserResponse, UserUpdate,UserResponse_me
 from schemas.role import RoleResponse
 
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
+@router.get("/me", response_model=UserResponse_me, summary="获取当前用户信息")
 async def read_users_me(
     db: CurrentSession,
     current_user: User = Depends(get_current_user)
-) -> UserResponse:
+) -> UserResponse_me:
     """
     获取当前登录用户信息
     """
