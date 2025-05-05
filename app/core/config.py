@@ -3,7 +3,6 @@ from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-
 class Settings(BaseSettings):
     """
     应用配置设置类
@@ -46,6 +45,10 @@ class Settings(BaseSettings):
 
     # 高德地图 API配置
     GAODE_API_KEY: str
+
+    # 华为云配置
+    HUAWEICLOUD_SDK_AK: str
+    HUAWEICLOUD_SDK_SK: str
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
