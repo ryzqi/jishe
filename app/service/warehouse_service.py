@@ -29,7 +29,7 @@ async def get_warehouse_stock_statistics(db: AsyncSession, warehouse_id: int) ->
         stocks = await get_stocks_by_warehouse(db, warehouse_id)
         
         # 创建货物ID到库存数量的映射
-        stock_map = {stock.goods_id: stock.all_count for stock in stocks}
+        stock_map = {stock['goods_id']: stock['all_count'] for stock in stocks}
         
         # 准备返回数据
         y_axis_data = []
