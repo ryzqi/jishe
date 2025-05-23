@@ -22,10 +22,19 @@ from crud.stock import (
 )
 from core.security import get_current_user
 from models.user import User
-from models import Rooms
+from models import Rooms, Stock
 from models import StreamConfig
+from fastapi.responses import JSONResponse
+from service.user_log import insert_user_log
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime
+from typing import Optional
 
-
+from app.models import Goods, Stock
+from app.schemas.stock import StockCreate, StockBase, StockResponse
+from loguru import logger
 router = APIRouter()
 
 
@@ -33,7 +42,7 @@ router = APIRouter()
 async def create_stock_endpoint(
     stock_data: StockCreate,
     db: CurrentSession,
-    user: str = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ) -> StockResponse:
     """
     创建新的库存记录
@@ -45,10 +54,50 @@ async def create_stock_endpoint(
     - **user**: 当前登录用户
     """
     try:
-        new_stock = await create_stock(db, stock_data)
-        return new_stock
+        # 1. 检查 goods_name 是否已存在
+        result = await db.execute(select(Goods).where(Goods.goods_name == stock_data.goods_name))
+        existing_goods = result.scalar_one_or_none()
+
+        if existing_goods:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该商品已存在，不能重复添加"
+            )
+
+        # 2. 插入新商品记录
+        new_goods = Goods(goods_name=stock_data.goods_name)
+        db.add(new_goods)
+        await db.flush()  # 获取 new_goods.id
+        if stock_data.last_add_date and stock_data.last_add_date.tzinfo:
+            stock_data.last_add_date = stock_data.last_add_date.replace(tzinfo=None)
+        # 3. 构造 StockBase 对象并插入库存
+        stock = Stock(
+            warehouse_id=stock_data.warehouse_id,
+            goods_id=new_goods.id,
+            all_count=stock_data.all_count,
+            last_add_count=stock_data.last_add_count,
+            last_add_date=stock_data.last_add_date or datetime.utcnow()
+        )
+        db.add(stock)
+        await db.commit()
+        await db.refresh(stock)
+
+        insert_user_log(str(user.id), "新增库存", "成功")
+
+        return StockResponse.from_orm(stock)
+
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"数据库操作失败: {e}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="数据库错误，无法创建库存"
+        )
     except Exception as e:
         logger.error(f"创建库存失败: {str(e)}")
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"创建库存失败: {str(e)}"
@@ -60,7 +109,7 @@ async def update_stock_endpoint(
     stock_id: int,
     stock_data: StockUpdate,
     db: CurrentSession,
-    user: str = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ) -> StockResponse:
     """
     更新指定ID的库存记录
@@ -81,6 +130,7 @@ async def update_stock_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"库存ID {stock_id} 不存在"
             )
+        insert_user_log(str(user.id), "修改库存", "成功")
         return updated_stock
     except HTTPException:
         raise
@@ -139,7 +189,7 @@ async def update_stock_by_warehouse_goods_endpoint(
 async def delete_stock_endpoint(
     stock_id: int,
     db: CurrentSession,
-    user: str = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
     """
     删除指定ID的库存记录
@@ -154,6 +204,8 @@ async def delete_stock_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"库存ID {stock_id} 不存在"
             )
+        insert_user_log(str(user.id), "删除库存", "成功")
+        return JSONResponse(content={"message": f"库存ID {stock_id} 删除成功"})
     except HTTPException:
         raise
     except Exception as e:
@@ -298,7 +350,7 @@ async def get_stock_by_warehouse_goods_endpoint(
 async def get_warehouse_stocks(
     warehouse_id: int,
     db: CurrentSession,
-    user: str = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
     """
     获取指定仓库的所有库存记录
@@ -308,6 +360,7 @@ async def get_warehouse_stocks(
     """
     try:
         stocks = await get_stocks_by_warehouse(db, warehouse_id)
+        insert_user_log(str(user.id), "查看所有库存", "成功")
         return stocks
     except Exception as e:
         logger.error(f"获取仓库库存列表失败: {str(e)}")
@@ -322,9 +375,20 @@ async def get_rooms(
         db: CurrentSession,
         user: str = Depends(get_current_user)
 ) -> List[RoomsResponse]:
-    result = await db.execute(select(Rooms))  # 使用异步查询方式
-    rooms = result.scalars().all()
-    return rooms
+    # 联表查询 rooms 和 stock
+    result = await db.execute(
+        select(Rooms, Stock.all_count)
+        .join(Stock, Rooms.stock_id == Stock.id)
+    )
+    rows = result.all()
+
+    # 手动构造响应数据，替换 num 为 all_count
+    rooms_response = []
+    for room, all_count in rows:
+        room.num = all_count
+        rooms_response.append(room)
+
+    return rooms_response
 
 
 @router.get("/url", summary="获取实时视频的url")

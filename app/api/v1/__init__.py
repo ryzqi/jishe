@@ -8,7 +8,8 @@ from api.v1.endpoints import (
     patrol_router,
     error_router,
     transport_router,
-    iodta_router
+    iodta_router,
+    user_log_router
 )
 
 
@@ -37,3 +38,5 @@ api_router.include_router(transport_router, prefix="/transport", tags=["运输�
 
 # 添加IODTA路由
 api_router.include_router(iodta_router, prefix="/iodta", tags=["IODTA"])
+
+api_router.include_router(user_log_router, prefix="/user_log", tags=["近期用户操作日志"])

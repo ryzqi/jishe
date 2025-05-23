@@ -36,7 +36,10 @@ class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, description="用户姓名")
     email: Optional[str] = Field(None, description="用户邮箱")
     phone: Optional[str] = Field(None, description="用户电话号码")
-
+    avatar_url: Optional[str] = Field(
+        default='',
+        description="用户头像地址"
+    )
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -52,7 +55,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     """用户响应模型"""
-    role: int = Field(..., description="角色编号")
+    role: Optional[int] = Field(None, description="角色编号")  # ✅ 改为可选
     id: int = Field(..., description="用户唯一标识")
     username: str = Field(..., description="用户·昵称")
     name: str = Field(..., description="用户姓名")
@@ -92,6 +95,7 @@ class UserResponse_me(UserBase):
     name: str = Field(..., description="用户姓名")
     email: str = Field(..., description="邮箱")
     phone: str = Field(..., description="用户电话号码")
+    avatar_url: Optional[str] = Field(..., description="用户头像url")
     createTime: datetime = Field(
         ...,
         alias="createtime",
@@ -112,3 +116,14 @@ class UserResponse_me(UserBase):
             }
         }
     }
+
+
+class PasswordChange(BaseModel):
+    user_id: int = Field(..., description="待修改的user_id")
+    old_password: str = Field(..., description="旧密码")
+    new_password: str = Field(..., description="新密码")
+
+
+class UpdateUserPayload(BaseModel):
+    user_in: UserUpdate
+    role_ids: Optional[List[int]] = None

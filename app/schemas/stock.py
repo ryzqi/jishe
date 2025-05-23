@@ -13,9 +13,13 @@ class StockBase(BaseModel):
     last_add_date: Optional[datetime] = None
 
 
-class StockCreate(StockBase):
+class StockCreate(BaseModel):
     """创建库存请求模型"""
-    pass
+    goods_name: str = Field(..., description="新增材料种类")
+    warehouse_id: int = Field(..., description="仓库唯一标识")
+    all_count: int = Field(..., description="总库存量", ge=0)
+    last_add_count: int = Field(..., description="新增库存量")
+    last_add_date: Optional[datetime] = None
 
 
 class StockUpdate(StockBase):

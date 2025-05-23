@@ -6,6 +6,8 @@ from db.database import CurrentSession
 from schemas.transport import TransportRead, TransportCreate, TransportUpdate
 from crud import transport as crud_transport
 from core.security import get_current_user
+from service.user_log import insert_user_log
+from models.user import User
 
 router = APIRouter()
 
@@ -19,7 +21,7 @@ router = APIRouter()
 async def create_transport(
         transport_in: TransportCreate,
         db: CurrentSession,
-        user: str = Depends(get_current_user)
+        user: User = Depends(get_current_user)
 ):
     """
     创建运输线路记录。
@@ -27,6 +29,7 @@ async def create_transport(
     logger.info(f"接收到创建运输线路请求: {transport_in.model_dump()}")
     created_transport = await crud_transport.create_transport(db=db, transport=transport_in)
     logger.info(f"成功创建运输线路记录，ID: {created_transport.id}")
+    insert_user_log(str(user.id), "新增运输任务", "成功")
     return created_transport
 
 
@@ -39,7 +42,7 @@ async def read_transports(
         db: CurrentSession,
         skip: int = 0,
         limit: int = 100,
-        user: str = Depends(get_current_user)
+        user: User = Depends(get_current_user)
 ):
     """
     获取运输线路列表 (支持分页)。
@@ -47,6 +50,7 @@ async def read_transports(
     logger.info(f"请求运输线路列表: skip={skip}, limit={limit}")
     transports = await crud_transport.get_transports(db=db, skip=skip, limit=limit)
     logger.debug(f"查询到 {len(transports)} 条运输线路记录")
+    insert_user_log(str(user.id), "查看运输任务", "成功")
     return transports
 
 
@@ -115,7 +119,7 @@ async def update_transport(
 async def delete_transport(
         transport_id: int,
         db: CurrentSession,
-        user: str = Depends(get_current_user)
+        user: User = Depends(get_current_user)
 ):
     """
     删除运输线路记录。
@@ -132,5 +136,5 @@ async def delete_transport(
         )
 
     logger.info(f"成功删除运输线路记录，ID: {transport_id}")
-
+    insert_user_log(str(user.id), "删除运输任务", "成功")
     return deleted_transport

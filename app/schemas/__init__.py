@@ -10,6 +10,7 @@ from schemas.user_role import UserRoleCreate, UserRoleResponse
 from schemas.token import Token, TokenPayload
 from schemas.rooms import RoomsResponse
 from schemas.stream_config import StreamUrlRequest
+from schemas.user_log import LogResponse
 
 __all__ = [
     "DroneCreate", "DroneUpdate", "DroneResponse",
@@ -21,5 +22,6 @@ __all__ = [
     "StockCreate", "StockUpdate", "StockResponse",
     "UserCreate", "UserUpdate", "UserResponse",
     "UserRoleCreate", "UserRoleResponse",
-    "Token", "TokenPayload", "RoomsResponse", "StreamUrlRequest"
+    "Token", "TokenPayload", "RoomsResponse", "StreamUrlRequest",
+    "LogResponse"
 ]

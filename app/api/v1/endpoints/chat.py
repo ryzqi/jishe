@@ -4,6 +4,7 @@ from schemas.chat import ChatMessage
 from fastapi.responses import StreamingResponse
 from fastapi.responses import JSONResponse
 from core.security import get_current_user
+from service.user_log import insert_user_log
 
 router = APIRouter()
 

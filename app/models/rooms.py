@@ -12,3 +12,4 @@ class Rooms(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     status: Mapped[str] = mapped_column(nullable=False)
     num: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    stock_id: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

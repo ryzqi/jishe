@@ -32,6 +32,6 @@ class User(Base):
     name = Column(String(100), comment="用户姓名")
     phone = Column(String(15), comment="用户电话号码")
     createtime = Column(DateTime, nullable=False, server_default=func.now(), comment="账户创建时间")
-    
+    avatar_url = Column(String(255), nullable=False, default='', comment="头像url")
     # 关系
-    roles = relationship("UserRole", back_populates="user") 
+    roles = relationship("UserRole", back_populates="user")

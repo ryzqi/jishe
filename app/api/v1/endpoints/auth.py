@@ -11,7 +11,12 @@ from crud.user import authenticate_user, get_user_roles
 from db.database import CurrentSession
 from schemas.token import Token, LoginRequest
 from fastapi.responses import Response  # 导入Response
-
+from service.user_log import insert_user_log
+import os
+import json
+from fastapi import HTTPException
+from service.user_log import insert_user_log
+USER_LOG_DIR = "user_log"
 
 router = APIRouter()
 
@@ -99,7 +104,14 @@ async def login(
             roles=all_role_ids,  # 使用用户所有角色ID列表
             expires_delta=access_token_expires
         )
+        os.makedirs(USER_LOG_DIR, exist_ok=True)
+        log_file = os.path.join(USER_LOG_DIR, f"{user.id}_user_log.json")
 
+        # 如果文件不存在，创建空文件
+        if not os.path.exists(log_file):
+            with open(log_file, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+        insert_user_log(str(user.id), "登录系统", "成功")
         # 将记录日志放入后台任务，不阻塞响应
         background_tasks.add_task(logger.info, f"用户 {user.username} (ID: {user.id}) 登录成功，角色: {login_data.role_name}")
         return Token(access_token=access_token, token_type="bearer")

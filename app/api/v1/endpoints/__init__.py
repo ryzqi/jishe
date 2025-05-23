@@ -12,6 +12,7 @@ from api.v1.endpoints.patrol import router as patrol_router
 from api.v1.endpoints.error import router as error_router
 from api.v1.endpoints.transport import router as transport_router
 from api.v1.endpoints.iodta import router as iodta_router
+from api.v1.endpoints.user_log import router as user_log_router
 
 __all__ = [
     "auth_router",
@@ -22,4 +23,5 @@ __all__ = [
     "error_router",
     "transport_router",
     "iodta_router",
+    "user_log_router"
 ]

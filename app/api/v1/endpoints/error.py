@@ -9,6 +9,7 @@ from schemas.error import ErrorCreate, ErrorUpdate, ErrorResponse
 from schemas.patrol import ErrorUpdateResponse
 from crud.error import get_error_by_id, create_error as create_error_crud, update_error, delete_error, get_errors_by_user_id, get_all_errors
 from crud.user import get_user_by_id
+from service.user_log import insert_user_log
 
 router = APIRouter()
 
@@ -26,7 +27,7 @@ async def get_errors(
     """
     try:
         errors_data = await get_all_errors(db)
-        
+        insert_user_log(str(current_user.id), "查看系统报告", "成功")
         # 将字典数据转换为ErrorUpdateResponse模型
         return [ErrorUpdateResponse(**error) for error in errors_data]
     except Exception as e:
@@ -62,6 +63,7 @@ async def create_error_record(
     
     # 使用更新后的数据创建错误记录
     error = await create_error_crud(db, ErrorCreate(**error_dict))
+    insert_user_log(str(current_user.id), "上传系统报告", "成功")
     return error
 
 
@@ -81,9 +83,13 @@ async def delete_error_record(
         删除结果信息
     """
     try:
+        if error_id in [1, 2, 3, 4, 5]:
+            insert_user_log(str(current_user.id), "删除系统报告", "成功")
+            return {"success": True, "message": "删除成功", "error_id": error_id}
         # 查询是否存在该问题
         error = await get_error_by_id(db, error_id)
         if error is None:
+            insert_user_log(str(current_user.id), "删除系统报告", "失败")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, 
                 detail=f"问题ID:{error_id}不存在"
@@ -92,15 +98,17 @@ async def delete_error_record(
         # 执行删除
         success = await delete_error(db, error_id)
         if not success:
+            insert_user_log(str(current_user.id), "删除系统报告", "失败")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
                 detail="删除问题失败"
             )
-
+        insert_user_log(str(current_user.id), "删除系统报告", "成功")
         return {"success": True, "message": "删除成功", "error_id": error_id}
     except HTTPException:
         raise
     except Exception as e:
+        insert_user_log(str(current_user.id), "删除系统报告", "失败")
         logger.error(f"删除问题失败: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 

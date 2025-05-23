@@ -17,3 +17,7 @@ aiohttp==3.11.14
 google-generativeai==0.8.4
 duckduckgo-search==7.5.5
 psycopg2-binary==2.9.3
+huaweicloudsdkcore
+huaweicloudsdkiotda
+oss2
+file-read-backwards

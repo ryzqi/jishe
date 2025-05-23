@@ -8,8 +8,10 @@ from loguru import logger
 from models.user import User
 from models.user_role import UserRole
 from models.role import Role
+from models.error import Error
 from core.password import verify_password, get_password_hash
 from schemas.user import UserCreate, UserUpdate, UserResponse
+from sqlalchemy import and_
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
@@ -66,7 +68,9 @@ async def get_user_roles(db: AsyncSession, user_id: int) -> List[Role]:
     try:
         query = select(Role).join(UserRole).where(UserRole.user_id == user_id)
         result = await db.execute(query)
-        return list(result.scalars().all())
+        roles = list(result.scalars().all())
+        print(f"当前用户角色列表: {[r.role_id for r in roles]}")
+        return roles
     except SQLAlchemyError as e:
         logger.error(f"获取用户(ID:{user_id})角色失败: {str(e)}")
         raise
@@ -180,7 +184,11 @@ async def update_user(
         
         await db.commit()
         updated_user = await get_user_by_id(db, user_id)
-        setattr(updated_user, 'role', role_ids[0])
+        # # 如果提供了角色并且列表不为空，给用户对象添加第一个角色的 role 字段
+        # if role_ids is not None and len(role_ids) > 0:
+        #     setattr(updated_user, 'role', role_ids[0])
+        # 保证 response 中始终有 role 字段
+        setattr(updated_user, 'role', role_ids[0] if role_ids else None)
         logger.info(f"用户更新成功: {updated_user.username} (ID: {updated_user.id})")
         return updated_user
     except SQLAlchemyError as e:
@@ -206,8 +214,18 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
         if not user:
             logger.warning(f"删除用户失败: 用户ID:{user_id}不存在")
             return False
-        
-        # 删除用户
+
+        # 先删除 error 表中的关联记录
+        await db.execute(
+            delete(Error).where(Error.user_id == user_id)
+        )
+
+        # 再删除 user_role 表中的关联记录
+        await db.execute(
+            delete(UserRole).where(UserRole.user_id == user_id)
+        )
+
+        # 最后删除 user 表中的用户
         await db.execute(
             delete(User)
             .where(User.id == user_id)
