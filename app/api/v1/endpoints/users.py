@@ -1,8 +1,7 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status,UploadFile, File, Body
+from fastapi import APIRouter, Depends, HTTPException, status,UploadFile, File
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import (
     get_current_user,

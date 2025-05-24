@@ -1,6 +1,4 @@
 from typing import Dict, List
-from fastapi import APIRouter, Depends, HTTPException, status
-from loguru import logger
 from sqlalchemy import select, delete
 from db.database import CurrentSession
 from service.warehouse_service import get_warehouse_stock_statistics
@@ -30,10 +28,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
-from typing import Optional
 
-from app.models import Goods, Stock
-from app.schemas.stock import StockCreate, StockBase, StockResponse
+from models import Goods, Stock
+from schemas.stock import StockCreate, StockBase, StockResponse
 from loguru import logger
 router = APIRouter()
 
