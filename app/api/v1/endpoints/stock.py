@@ -376,6 +376,7 @@ async def get_rooms(
     result = await db.execute(
         select(Rooms, Stock.all_count)
         .join(Stock, Rooms.stock_id == Stock.id)
+        .order_by(Rooms.id)
     )
     rows = result.all()
 

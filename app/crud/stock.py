@@ -211,7 +211,7 @@ async def delete_stock(db: AsyncSession, stock_id: int) -> bool:
         bool: 是否删除成功
     """
     try:
-        if stock_id in [25, 29, 27, 11, 30, 26, 22, 62]:
+        if stock_id in [25, 29, 3, 37, 2, 26, 7, 27]:
             print("跳过这个删除")
             return True
         db_stock = await get_stock(db, stock_id)
